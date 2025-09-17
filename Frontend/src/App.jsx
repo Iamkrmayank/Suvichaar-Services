@@ -5,6 +5,7 @@ import Signup from "./components/Signup";
 import VerifyEmail from "./components/VerifyEmail";
 import Settings from "./components/Settings";
 import Uploader from "./components/Uploader";
+import DashboardLayout from "./components/Dashboard";
 import './index.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/converter" element={<Uploader />} />
+      <Route path="/dashboard" element={<DashboardLayout />} />
     </Routes>
   );
 }
