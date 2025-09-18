@@ -101,24 +101,56 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from "react-router-dom";
 import { googleAuth, emailLogin } from "../firebase_config/authService";
-
+import LoadingScreen from "./Loading";
 import logo from "/ContentLabs.png";
 const Login = () => {
   const [formVisible, setFormVisible] = useState(false);
   const [error, setError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     setTimeout(() => setFormVisible(true), 100);
   }, []);
 
+  // const handleGoogleLogin = async () => {
+  //   try {
+  //     const userData = await googleAuth();
+  //     console.log("User Logged In:", userData);
+  //     navigate("/dashboard");
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError("Google Sign-In failed");
+  //   }
+  // };
+
+  // const handleNormalSignIn = async (e) => {
+  //   e.preventDefault();
+  //   const email = e.target.email.value;
+  //   const password = e.target.password.value;
+
+  //   try {
+  //     await emailLogin(email, password);
+  //     navigate("/");
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError(err.message || "Invalid email or password");
+  //   }
+  //   e.target.reset();
+  // };
+
+
   const handleGoogleLogin = async () => {
     try {
       const userData = await googleAuth();
       console.log("User Logged In:", userData);
-      navigate("/");
+
+      if (userData.acceptedTerms) {
+        navigate("/dashboard");
+      } else {
+        navigate("/terms"); // 👈 force terms first
+      }
     } catch (err) {
       console.error(err);
       setError("Google Sign-In failed");
@@ -131,21 +163,33 @@ const Login = () => {
     const password = e.target.password.value;
 
     try {
-      await emailLogin(email, password);
-      navigate("/");
+      setLoading(true);
+      const userData = await emailLogin(email, password);
+
+      if (userData.acceptedTerms) {
+        navigate("/dashboard");
+      } else {
+        navigate("/terms"); // 👈 force terms first
+      }
     } catch (err) {
       console.error(err);
       setError(err.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
+
     e.target.reset();
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center 
       bg-gradient-to-brpx-4">
-    {/* <div className="min-h-screen flex items-center justify-center 
+      {loading && <LoadingScreen text="Logging you in..." />}
+
+      {/* <div className="min-h-screen flex items-center justify-center 
       bg-gradient-to-br from-[#B7D4E9] via-white to-[#E6A24B] px-4"> */}
-      
+
       <div
         className={`relative bg-white text-black shadow-lg rounded-2xl p-10 max-w-md w-full border border-[#B7D4E9]
         ${formVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"} transform transition-all duration-500 ease-out`}
