@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase_config/config";
+import { auth, db } from "../../firebase_config/config";
 import { doc, updateDoc } from "firebase/firestore";
 import { ShieldCheck, FileText } from "lucide-react";
 

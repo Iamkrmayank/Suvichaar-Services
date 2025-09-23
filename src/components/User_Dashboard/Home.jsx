@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase_config/config"; // 👈 import your firebase auth
+import { auth } from "../../firebase_config/config"; // 👈 import your firebase auth
 import logo from "/ContentLabs_2.png";
 import logoGif from "/contentlabsGif2.gif?url";
 

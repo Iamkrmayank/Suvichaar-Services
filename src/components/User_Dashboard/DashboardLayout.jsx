@@ -260,7 +260,7 @@
 
 
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase_config/config";
+import { auth, db } from "../../firebase_config/config";
 import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { signOut } from "firebase/auth";
@@ -362,7 +362,7 @@ function DashboardLayout() {
 
           {/* OCR Core */}
           <Link
-            to="/dashboard/converter"
+            to="/dashboard/ocr-core"
             className={`flex items-center py-2 rounded-lg hover:bg-gray-100 ${isCollapsed ? "justify-center" : "px-3"
               }`}
           >
@@ -372,7 +372,7 @@ function DashboardLayout() {
 
           {/* OCR Advanced */}
           <Link
-            to="/dashboard/ocr-advanced"
+            to="/dashboard/ocr-advance"
             className={`flex items-center py-2 rounded-lg hover:bg-gray-100 ${isCollapsed ? "justify-center" : "px-3"
               }`}
           >

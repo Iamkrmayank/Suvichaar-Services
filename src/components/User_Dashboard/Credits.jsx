@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { db, auth } from "../firebase_config/config";
+import { db, auth } from "../../firebase_config/config";
 import { collection, getDocs } from "firebase/firestore";
 
 const Credits = () => {
@@ -24,8 +24,6 @@ const Credits = () => {
           serviceMap[data.id] = data.name || "Unnamed Service"; // use 'id' field, not doc.id
         });
 
-        console.log("🔥 Services Map:", serviceMap);
-
         // 2. Fetch user credits
         const creditsRef = collection(db, "Credits", user.uid, "UserCredits");
         const snapshot = await getDocs(creditsRef);
@@ -34,13 +32,11 @@ const Credits = () => {
           const creditData = creditDoc.data();
           const serviceId = creditData.serviceId;
 
-          console.log("📌 Credit Record:", creditData);
-          console.log("👉 Matching Service Name:", serviceMap[serviceId]);
-
           return {
             id: creditDoc.id,
             serviceName: serviceMap[serviceId] || "Unknown Service",
             serviceId,
+            isActive: creditData.isActive ?? true, // default to true
             ...creditData,
           };
         });
@@ -71,13 +67,14 @@ const Credits = () => {
       <div className="overflow-x-auto bg-white shadow-lg rounded-xl border border-gray-200">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-800 text-white text-left text-sm uppercase tracking-wider">
+            <tr className="bg-gray-800 text-white text-sm uppercase tracking-wider text-center">
               <th className="py-4 px-6 border-b border-gray-700">Service Name</th>
               <th className="py-4 px-6 border-b border-gray-700">Service ID</th>
               <th className="py-4 px-6 border-b border-gray-700">Total Credits</th>
-              <th className="py-4 px-6 border-b border-gray-700">Used</th>
-              <th className="py-4 px-6 border-b border-gray-700">Available</th>
+              <th className="py-4 px-6 border-b border-gray-700">Used Credits</th>
+              <th className="py-4 px-6 border-b border-gray-700">Available Credits</th>
               <th className="py-4 px-6 border-b border-gray-700">Equivalent</th>
+              <th className="py-4 px-6 border-b border-gray-700">Status</th>
             </tr>
           </thead>
           <tbody className="text-gray-700 text-sm">
@@ -89,30 +86,41 @@ const Credits = () => {
                     index % 2 === 0 ? "bg-gray-50" : "bg-white"
                   } hover:bg-yellow-50 transition`}
                 >
-                  <td className="py-4 px-6 border-b border-gray-200 font-medium">
+                  <td className="py-4 px-6 border-b border-gray-200 font-medium text-center">
                     {credit.serviceName}
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-200">
+                  <td className="py-4 px-6 border-b border-gray-200 text-center">
                     {credit.serviceId}
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-200">
+                  <td className="py-4 px-6 border-b border-gray-200 text-center">
                     {credit.total}
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-200">
+                  <td className="py-4 px-6 border-b border-gray-200 text-center">
                     {credit.used}
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-200 text-green-600 font-semibold">
+                  <td className="py-4 px-6 border-b border-gray-200 text-green-600 font-semibold text-center">
                     {credit.available}
                   </td>
-                  <td className="py-4 px-6 border-b border-gray-200">
+                  <td className="py-4 px-6 border-b border-gray-200 text-center">
                     {credit.equivalent}
+                  </td>
+                  <td className="py-4 px-6 border-b border-gray-200 text-center">
+                    {credit.isActive ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                        Inactive
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="7"
                   className="py-6 text-center text-gray-500 italic border-t border-gray-200"
                 >
                   No credits found.

@@ -1,5 +1,5 @@
 // import { useState, useEffect } from "react";
-// import { auth, db } from "../firebase_config/config";
+// import { auth, db } from "../../firebase_config/config";
 // import { updateProfile, sendPasswordResetEmail } from "firebase/auth";
 // import { doc, updateDoc, getDoc } from "firebase/firestore";
 
@@ -15,11 +15,9 @@
 //       if (currentUser) {
 //         setUser(currentUser);
 
-//         // detect if signed in with Google
 //         const providerId = currentUser.providerData[0]?.providerId;
 //         setIsGoogleUser(providerId === "google.com");
 
-//         // Only load Firestore data for email/password users
 //         if (providerId !== "google.com") {
 //           const docRef = doc(db, "Users", currentUser.uid);
 //           const docSnap = await getDoc(docRef);
@@ -85,7 +83,7 @@
 //         </h1>
 
 //         {message && (
-//           <p className="mb-4 text-center text-sm font-medium text-blue-600">
+//           <p className="mb-4 text-center text-sm font-medium text-[#E6A24B]">
 //             {message}
 //           </p>
 //         )}
@@ -115,7 +113,7 @@
 //                   type="text"
 //                   value={firstName}
 //                   onChange={(e) => setFirstName(e.target.value)}
-//                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+//                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#E6A24B] focus:outline-none"
 //                 />
 //               </div>
 //               <div>
@@ -126,12 +124,12 @@
 //                   type="text"
 //                   value={lastName}
 //                   onChange={(e) => setLastName(e.target.value)}
-//                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+//                   className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#E6A24B] focus:outline-none"
 //                 />
 //               </div>
 //               <button
 //                 type="submit"
-//                 className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-all"
+//                 className="w-full bg-[#E6A24B] text-white py-2 rounded-lg hover:bg-[#d68d32] transition-all"
 //               >
 //                 Save Changes
 //               </button>
@@ -151,7 +149,7 @@
 //               </h2>
 //               <button
 //                 onClick={handlePasswordReset}
-//                 className="w-full bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition-all"
+//                 className="w-full bg-[#E6A24B] text-white py-2 rounded-lg hover:bg-[#d68d32] transition-all"
 //               >
 //                 Send Password Reset Email
 //               </button>
@@ -166,8 +164,11 @@
 // export default Settings;
 
 
+
+// ---------------------------updated for more security purpose
+
 import { useState, useEffect } from "react";
-import { auth, db } from "../firebase_config/config";
+import { auth, db } from "../../firebase_config/config";
 import { updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 
@@ -177,6 +178,7 @@ function Settings() {
   const [lastName, setLastName] = useState("");
   const [message, setMessage] = useState("");
   const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0); // seconds cooldown
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -208,9 +210,17 @@ function Settings() {
     return () => unsubscribe();
   }, []);
 
+  // simple validation: letters, numbers, spaces only + max length 50
+  const validateName = (name) => /^[a-zA-Z0-9\s]{0,50}$/.test(name);
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!validateName(firstName) || !validateName(lastName)) {
+      setMessage("⚠️ Names can only contain letters, numbers, spaces (max 50 chars).");
+      return;
+    }
 
     try {
       await updateProfile(user, { displayName: `${firstName} ${lastName}` });
@@ -220,20 +230,33 @@ function Settings() {
       setMessage("✅ Profile updated successfully!");
     } catch (error) {
       console.error(error);
-      setMessage("❌ Failed to update profile.");
+      setMessage("❌ Failed to update profile. Please try again.");
     }
   };
 
   const handlePasswordReset = async () => {
     if (!user?.email) return;
+    if (resetCooldown > 0) return; // prevent spamming
+
     try {
       await sendPasswordResetEmail(auth, user.email);
       setMessage("📩 Password reset email sent! Check your inbox.");
+      setResetCooldown(30); // start 30s cooldown
     } catch (error) {
       console.error(error);
       setMessage("❌ Failed to send password reset email.");
     }
   };
+
+  // countdown for resetCooldown
+  useEffect(() => {
+    if (resetCooldown > 0) {
+      const timer = setInterval(() => {
+        setResetCooldown((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resetCooldown]);
 
   if (!user) {
     return (
@@ -317,9 +340,16 @@ function Settings() {
               </h2>
               <button
                 onClick={handlePasswordReset}
-                className="w-full bg-[#E6A24B] text-white py-2 rounded-lg hover:bg-[#d68d32] transition-all"
+                disabled={resetCooldown > 0}
+                className={`w-full py-2 rounded-lg transition-all ${
+                  resetCooldown > 0
+                    ? "bg-gray-400 cursor-not-allowed text-white"
+                    : "bg-[#E6A24B] text-white hover:bg-[#d68d32]"
+                }`}
               >
-                Send Password Reset Email
+                {resetCooldown > 0
+                  ? `Wait ${resetCooldown}s`
+                  : "Send Password Reset Email"}
               </button>
             </div>
           </>

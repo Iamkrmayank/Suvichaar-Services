@@ -95,7 +95,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "../firebase_config/config";
+import { auth, db } from "../../firebase_config/config";
 import { doc, getDoc } from "firebase/firestore";
 import LoadingScreen from "./Loading";
 const PrivateRoute = ({ children }) => {

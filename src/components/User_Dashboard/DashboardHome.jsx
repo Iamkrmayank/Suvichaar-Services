@@ -35,7 +35,7 @@ function DashboardHome() {
           <p className="text-gray-600 mb-4">
             Extracts text from images, scanned PDFs, and handwritten notes with reliable accuracy. Designed for everyday digitization needs across printed and handwritten content.
           </p>
-          <Link to="/dashboard/converter">
+          <Link to="/dashboard/ocr-core">
             <button className="px-4 py-2 bg-[#E6A24B] text-white rounded-lg hover:bg-[#d68d32] w-full">
               Open Tool
             </button>
@@ -50,7 +50,7 @@ function DashboardHome() {
           <p className="text-gray-600 mb-4">
             High-precision OCR that handles complex layouts, tables, multi-language documents, and low-quality scans. Provides enterprise-grade recognition for detailed document processing.
           </p>
-          <Link to="/dashboard/story-generator">
+          <Link to="/dashboard/ocr-advance">
             <button className="px-4 py-2 bg-[#E6A24B] text-white rounded-lg hover:bg-[#d68d32] w-full">
               Open Tool
             </button>
