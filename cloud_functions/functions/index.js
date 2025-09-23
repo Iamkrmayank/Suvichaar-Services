@@ -558,7 +558,7 @@ async function handleOcrAdvanceRequest(req, res, apiUrl, apiKey) {
         if (current < creditsUsed) {
           throw new Error("Not enough credits");
         }
-        t.update(creditRef, { available: current - creditsUsed });
+        t.update(creditRef, { available: current - creditsUsed, used: currentUsed + creditsUsed });
       });
 
 

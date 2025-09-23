@@ -16,7 +16,7 @@ const SupportPage = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="flex justify-center mb-10">
+        {/* <div className="flex justify-center mb-10">
           <div className="relative w-full max-w-md">
             <input
               type="text"
@@ -25,7 +25,7 @@ const SupportPage = () => {
             />
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           </div>
-        </div>
+        </div> */}
 
         {/* FAQ Section */}
         <div className="bg-white shadow-xl rounded-xl p-5 border border-gray-200 mb-8">
@@ -60,7 +60,7 @@ const SupportPage = () => {
         </div>
 
         {/* Contact Support Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="flex justify-center">
           {/* Email Card */}
           <div className="bg-white shadow-xl rounded-xl p-5 border border-gray-200 flex flex-col items-center text-center">
             <Mail className="h-7 w-7 text-[#E6A24B] mb-2" />
@@ -72,12 +72,12 @@ const SupportPage = () => {
               href="mailto:support@contentlabs.com"
               className="text-[#E6A24B] text-sm font-medium hover:underline"
             >
-              support@contentlabs.com
+              contentlabs@suvichaar.org
             </a>
           </div>
 
           {/* Live Chat Card */}
-          <div className="bg-white shadow-xl rounded-xl p-5 border border-gray-200 flex flex-col items-center text-center">
+          {/* <div className="bg-white shadow-xl rounded-xl p-5 border border-gray-200 flex flex-col items-center text-center">
             <MessageCircle className="h-7 w-7 text-[#E6A24B] mb-2" />
             <h3 className="font-semibold text-gray-800 text-base">Live Chat</h3>
             <p className="text-xs text-gray-600 mt-1 mb-2">
@@ -86,7 +86,7 @@ const SupportPage = () => {
             <button className="bg-[#E6A24B] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#d68d32] transition">
               Start Chat
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
