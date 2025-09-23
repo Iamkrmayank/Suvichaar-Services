@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: .
+    container_name: suvichaar-fe
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: suvichaar-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  caddy_data:
+  caddy_config:
