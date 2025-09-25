@@ -4,12 +4,13 @@ import { auth, db } from "../../../firebase_config/config";
 import { getDoc, doc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 
-// 📄 PDF.js for counting pages (legacy build)
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+const serviceId = "CL_SER_1";
+const cloudFunctionUrl =
+  "https://us-central1-content-labs-8b84e.cloudfunctions.net/processOcrCore";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-
-// Helper function to read a file as an ArrayBuffer
+// ------------------------------------
+// Helper
+// ------------------------------------
 const readFileAsArrayBuffer = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -18,18 +19,12 @@ const readFileAsArrayBuffer = (file) =>
     reader.readAsArrayBuffer(file);
   });
 
-const serviceId = "CL_SER_1";
-const cloudFunctionUrl =
-  "https://us-central1-content-labs-8b84e.cloudfunctions.net/processOcrCore";
-
 // ------------------------------------
-// Core Uploader Component
+// Uploader Component
 // ------------------------------------
 const Uploader = ({
   file,
   setFile,
-  creditsUsed,
-  setCreditsUsed,
   processing,
   setProcessing,
   setProgress,
@@ -64,74 +59,54 @@ const Uploader = ({
         return;
       }
 
+      setFile(selectedFile);
       setErrorMessage(null);
-
-      try {
-        const typedarray = new Uint8Array(await readFileAsArrayBuffer(selectedFile));
-        const pdf = await pdfjsLib.getDocument({
-          data: typedarray,
-          disableAutoFetch: true,
-          disableStream: true,
-        }).promise;
-        const pages = pdf.numPages;
-
-        setFile(selectedFile);
-        setCreditsUsed(pages);
-
-        if (creditStatus && pages > creditStatus.available) {
-          setErrorMessage(
-            `❌ Not enough credits. File requires ${pages}, but you only have ${creditStatus.available}.`
-          );
-        }
-      } catch (err) {
-        console.error("Failed to read PDF:", err);
-        setErrorMessage("❌ Could not read the PDF file.");
-        setFile(null);
-      }
+      setSuccessMessage(null);
     },
-    [creditStatus, setFile, setCreditsUsed, setErrorMessage]
+    [setFile, setErrorMessage, setSuccessMessage]
   );
 
   const handleUpload = useCallback(async () => {
     if (!file || !userDetails || processing) return;
 
-    if (creditStatus && creditsUsed > creditStatus.available) {
-      setErrorMessage(
-        `❌ Not enough credits. This file needs ${creditsUsed}, but you only have ${creditStatus.available}.`
-      );
+    if (!creditStatus || creditStatus.available <= 0) {
+      setErrorMessage("❌ Not enough credits to process this file.");
       return;
     }
 
     setErrorMessage(null);
+    setSuccessMessage(null);
     setProcessing(true);
     setProgress(0);
 
+    // 🔄 Smooth + Slower fake progress bar
     const interval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + Math.floor(Math.random() * 10 + 5), 90));
-    }, 500);
+      setProgress((prev) =>
+        Math.min(prev + Math.random() * 3 + 1, 95) // 0.2%–0.8% increments
+      );
+    }, 500); // every 0.5s
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const pdfBytes = new Uint8Array(await readFileAsArrayBuffer(file));
       const idToken = await userDetails.getIdToken();
 
       const response = await fetch(cloudFunctionUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/pdf",
         },
-        body: formData,
+        body: pdfBytes,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to process file");
-      }
+      if (!response.ok) throw new Error("Failed to process file");
 
       clearInterval(interval);
       setProgress(100);
 
       const blob = await response.blob();
-      const credits = response.headers.get("X-Credits-Used");
+      const creditsHeader = response.headers.get("X-Credits-Used");
+      const creditsUsed = creditsHeader ? parseInt(creditsHeader, 10) : 1;
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -142,41 +117,38 @@ const Uploader = ({
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      if (credits) setCreditsUsed(parseInt(credits, 10));
-
       setSuccessMessage(
-        `✅ File Successfully Downloaded, Service Used ${credits || creditsUsed} credits`
+        `✅ File successfully downloaded. Service deducted ${creditsUsed} credits.`
       );
 
-      if (credits && creditStatus) {
+      if (creditStatus) {
         setCreditStatus((prev) => ({
           ...prev,
-          available: prev.available - parseInt(credits, 10),
+          available: prev.available - creditsUsed,
         }));
       }
     } catch (error) {
       console.error("Upload failed:", error);
       clearInterval(interval);
-      setErrorMessage("Something went wrong while processing your file.");
+      setErrorMessage("❌ Something went wrong while processing your file.");
     } finally {
+      clearInterval(interval);
       setTimeout(() => {
         setProcessing(false);
         setProgress(0);
         setFile(null);
-      }, 500);
+      }, 1500);
     }
   }, [
     file,
     userDetails,
     processing,
     creditStatus,
-    creditsUsed,
     setProcessing,
     setProgress,
     setErrorMessage,
     setSuccessMessage,
     setFile,
-    setCreditsUsed,
     setCreditStatus,
   ]);
 
@@ -216,9 +188,6 @@ const Uploader = ({
       {file && (
         <div className="mt-4 text-sm text-gray-700">
           <span className="font-semibold">Selected file:</span> {file.name}
-          {creditsUsed && (
-            <span className="ml-2 text-gray-600">(📄 Pages: {creditsUsed})</span>
-          )}
         </div>
       )}
 
@@ -241,13 +210,15 @@ const Uploader = ({
   );
 };
 
+// ------------------------------------
+// Main Component
+// ------------------------------------
 function OcrCore() {
   const [userDetails, setUserDetails] = useState(null);
   const [creditStatus, setCreditStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [file, setFile] = useState(null);
-  const [creditsUsed, setCreditsUsed] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -267,11 +238,7 @@ function OcrCore() {
         const creditRef = doc(db, "Credits", user.uid, "UserCredits", serviceId);
         const creditSnap = await getDoc(creditRef);
 
-        if (creditSnap.exists()) {
-          setCreditStatus(creditSnap.data());
-        } else {
-          setCreditStatus(null);
-        }
+        setCreditStatus(creditSnap.exists() ? creditSnap.data() : null);
       } catch (err) {
         console.error("Error fetching credits:", err);
         setCreditStatus(null);
@@ -288,46 +255,43 @@ function OcrCore() {
     setUserDetails(null);
     setCreditStatus(null);
     setFile(null);
-    setCreditsUsed(0);
     setProcessing(false);
     setProgress(0);
     setErrorMessage(null);
     setSuccessMessage("");
   };
 
-  const ProgressBar = () => (
+  const ProgressBar = ({ progress }) => (
     <div className="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
       <div
-        className="bg-[#E6A24B] h-3 transition-all duration-300 ease-in-out"
+        className="bg-[#E6A24B] h-3 transition-all duration-500 ease-in-out"
         style={{ width: `${progress}%` }}
       />
     </div>
   );
 
   const renderContent = () => {
-    if (loading) {
+    if (loading)
       return <p className="text-center text-gray-600">Loading service status...</p>;
-    }
 
-    if (!creditStatus) {
+    if (!creditStatus)
       return (
         <p className="text-center text-red-600 font-semibold">
           Service not found for your account. Please contact support@example.com
         </p>
       );
-    }
 
-    if (!creditStatus.isActive) {
+    if (!creditStatus.isActive)
       return (
         <p className="text-center text-red-600 font-semibold">
-          This service is <span className="underline">inactive</span> for your account.
+          This service is <span className="underline">inactive</span> for your
+          account.
           <br />
           Please contact support@example.com
         </p>
       );
-    }
 
-    if (creditStatus.available <= 0) {
+    if (creditStatus.available <= 0)
       return (
         <p className="text-center text-red-600 font-semibold">
           Your credits for this tool are <span className="underline">completed</span>.
@@ -335,15 +299,12 @@ function OcrCore() {
           Please contact support@example.com
         </p>
       );
-    }
 
     return (
       <>
         <Uploader
           file={file}
           setFile={setFile}
-          creditsUsed={creditsUsed}
-          setCreditsUsed={setCreditsUsed}
           processing={processing}
           setProcessing={setProcessing}
           setProgress={setProgress}
@@ -356,10 +317,7 @@ function OcrCore() {
         {errorMessage && (
           <div className="mt-4 text-red-600 font-semibold text-sm">{errorMessage}</div>
         )}
-        {processing && <ProgressBar />}
-        <div className="mt-6 text-xs text-gray-500">
-          • Each extracted page deducts 1 credit from your balance.
-        </div>
+        {processing && <ProgressBar progress={progress} />}
         {successMessage && (
           <div className="mt-4 text-green-600 text-sm font-semibold">{successMessage}</div>
         )}
@@ -370,12 +328,11 @@ function OcrCore() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#B7D4E9] via-white to-[#E6A24B] text-black p-6 relative">
       <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-8 border border-[#B7D4E9]">
-        <h1 className="text-2xl font-bold mb-2 text-center text-[#E6A24B]">
-          OCR Core
-        </h1>
+        <h1 className="text-2xl font-bold mb-2 text-center text-[#E6A24B]">OCR Core</h1>
         <p className="text-center text-gray-600 mb-6">
-          Extracts text from images, scanned PDFs, and handwritten notes with reliable
-          accuracy. Designed for everyday digitization needs across printed and handwritten content.
+          Extracts text from images, scanned PDFs, and handwritten notes with
+          reliable accuracy. Designed for everyday digitization needs across
+          printed and handwritten content.
         </p>
         {renderContent()}
       </div>
@@ -384,4 +341,3 @@ function OcrCore() {
 }
 
 export default OcrCore;
-
