@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Upload } from "lucide-react";
 import { auth, db } from "../../../firebase_config/config";
@@ -34,6 +35,8 @@ const Uploader = ({
   creditStatus,
   setCreditStatus,
 }) => {
+  const [phase, setPhase] = useState("idle"); // idle | uploading | analysing
+
   const handleDrop = (e) => {
     e.preventDefault();
     if (processing) return;
@@ -68,7 +71,6 @@ const Uploader = ({
 
   const handleUpload = useCallback(async () => {
     if (!file || !userDetails || processing) return;
-
     if (!creditStatus || creditStatus.available <= 0) {
       setErrorMessage("❌ Not enough credits to process this file.");
       return;
@@ -78,13 +80,17 @@ const Uploader = ({
     setSuccessMessage(null);
     setProcessing(true);
     setProgress(0);
+    setPhase("uploading");
 
-    // 🔄 Smooth + Slower fake progress bar
+    // Step 1: Blinking uploading for 3 seconds
+    const uploadingTimeout = setTimeout(() => {
+      setPhase("analysing");
+    }, 3000);
+
+    // Step 2: Smooth fake progress until 95%
     const interval = setInterval(() => {
-      setProgress((prev) =>
-        Math.min(prev + Math.random() * 3 + 1, 95) // 0.2%–0.8% increments
-      );
-    }, 500); // every 0.5s
+      setProgress((prev) => Math.min(prev + Math.random() * 3 + 1, 95));
+    }, 500);
 
     try {
       const pdfBytes = new Uint8Array(await readFileAsArrayBuffer(file));
@@ -101,12 +107,11 @@ const Uploader = ({
 
       if (!response.ok) throw new Error("Failed to process file");
 
-      clearInterval(interval);
-      setProgress(100);
-
       const blob = await response.blob();
       const creditsHeader = response.headers.get("X-Credits-Used");
       const creditsUsed = creditsHeader ? parseInt(creditsHeader, 10) : 1;
+
+      setProgress(100);
 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -117,8 +122,11 @@ const Uploader = ({
       a.remove();
       window.URL.revokeObjectURL(url);
 
+      // Step 3: Reset phase so button goes back to normal immediately
+      setPhase("idle");
+
       setSuccessMessage(
-        `✅ File successfully downloaded. Service deducted ${creditsUsed} credits.`
+        `✅ File Successfully Downloaded. Service Used ${creditsUsed} Credits.`
       );
 
       if (creditStatus) {
@@ -127,17 +135,27 @@ const Uploader = ({
           available: prev.available - creditsUsed,
         }));
       }
-    } catch (error) {
-      console.error("Upload failed:", error);
-      clearInterval(interval);
-      setErrorMessage("❌ Something went wrong while processing your file.");
-    } finally {
-      clearInterval(interval);
+
+      // Step 4: After 5 seconds, reset everything for next upload
       setTimeout(() => {
         setProcessing(false);
         setProgress(0);
         setFile(null);
+        setSuccessMessage(null);
+      }, 5000);
+
+    } catch (error) {
+      console.error("Upload failed:", error);
+      setErrorMessage("❌ Something went wrong while processing your file.");
+      setTimeout(() => {
+        setProcessing(false);
+        setProgress(0);
+        setFile(null);
+        setPhase("idle");
       }, 1500);
+    } finally {
+      clearInterval(interval);
+      clearTimeout(uploadingTimeout);
     }
   }, [
     file,
@@ -200,11 +218,13 @@ const Uploader = ({
             : "bg-gray-300 text-gray-500 cursor-not-allowed"
         }`}
       >
-        {processing
-          ? "Processing..."
-          : file
-          ? "Upload PDF to begin"
-          : "Upload a PDF to begin"}
+        {phase === "uploading" && processing ? (
+          <span className="animate-pulse">Uploading...</span>
+        ) : phase === "analysing" && processing ? (
+          <span className="animate-pulse">Suvichaar AI is Analysing...</span>
+        ) : (
+          "Upload PDF to begin"
+        )}
       </button>
     </>
   );
@@ -277,17 +297,28 @@ function OcrCore() {
     if (!creditStatus)
       return (
         <p className="text-center text-red-600 font-semibold">
-          Service not found for your account. Please contact support@example.com
+          Service not found for your account. Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
 
     if (!creditStatus.isActive)
       return (
         <p className="text-center text-red-600 font-semibold">
-          This service is <span className="underline">inactive</span> for your
-          account.
+          This service is <span className="underline">inactive</span> for your account.
           <br />
-          Please contact support@example.com
+          Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
 
@@ -296,7 +327,13 @@ function OcrCore() {
         <p className="text-center text-red-600 font-semibold">
           Your credits for this tool are <span className="underline">completed</span>.
           <br />
-          Please contact support@example.com
+          Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
 
@@ -318,6 +355,9 @@ function OcrCore() {
           <div className="mt-4 text-red-600 font-semibold text-sm">{errorMessage}</div>
         )}
         {processing && <ProgressBar progress={progress} />}
+        <div className="mt-6 text-xs text-gray-500">
+          • Each extracted page deducts 1 credit from your balance.
+        </div>
         {successMessage && (
           <div className="mt-4 text-green-600 text-sm font-semibold">{successMessage}</div>
         )}

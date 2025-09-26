@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { Upload } from "lucide-react";
 import { auth, db } from "../../../firebase_config/config";
 import { getDoc, doc } from "firebase/firestore";
@@ -8,162 +9,86 @@ const serviceId = "CL_SER_2";
 const cloudFunctionUrl =
   "https://us-central1-content-labs-8b84e.cloudfunctions.net/processAdvanceOcr";
 
-// Helper for file processing
-const readFileAsArrayBuffer = (file) => {
-  return new Promise((resolve, reject) => {
+// ------------------------------------
+// Helper
+// ------------------------------------
+const readFileAsArrayBuffer = (file) =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
   });
-};
 
 // ------------------------------------
-// UI Components
+// Uploader Component
 // ------------------------------------
-const UploaderBox = ({ onDrop, onDragOver, processing, onFileChange }) => (
-  <div
-    onDrop={onDrop}
-    onDragOver={onDragOver}
-    className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition ${
-      processing
-        ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-70"
-        : "border-[#B7D4E9] hover:border-[#E6A24B] cursor-pointer"
-    }`}
-  >
-    <Upload className="w-12 h-12 text-[#B7D4E9] mb-3" />
-    <p className="text-gray-700">Drag and drop file here</p>
-    <p className="text-sm text-gray-500">Limit 25MB per file • PDF</p>
+const Uploader = ({
+  file,
+  setFile,
+  processing,
+  setProcessing,
+  setProgress,
+  setErrorMessage,
+  setSuccessMessage,
+  userDetails,
+  creditStatus,
+  setCreditStatus,
+}) => {
+  const [phase, setPhase] = useState("idle"); // idle | uploading | analysing
+  const inputRef = React.useRef(null);
 
-    <label
-      className={`mt-5 px-5 py-2 rounded-lg text-sm font-semibold text-white ${
-        processing
-          ? "bg-gray-300 cursor-not-allowed"
-          : "bg-[#E6A24B] hover:bg-[#d68d32] cursor-pointer"
-      }`}
-    >
-      {processing ? "Disabled" : "Browse files"}
-      <input
-        type="file"
-        accept="application/pdf"
-        className="hidden"
-        onChange={onFileChange}
-        disabled={processing}
-      />
-    </label>
-  </div>
-);
-
-const ProgressBar = ({ progress }) => (
-  <div className="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
-    <div
-      className="bg-[#E6A24B] h-3 transition-all duration-300 ease-in-out"
-      style={{ width: `${progress}%` }}
-    />
-  </div>
-);
-
-// ------------------------------------
-// Main Component
-// ------------------------------------
-function OcrAdvance() {
-  const [userDetails, setUserDetails] = useState(null);
-  const [creditStatus, setCreditStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const [file, setFile] = useState(null);
-  const [uploadState, setUploadState] = useState({
-    processing: false,
-    progress: 0,
-    message: null,
-    messageType: null, // "success" or "error"
-    creditsUsed: null,
-  });
-
-  const { processing, progress, message, messageType, creditsUsed } = uploadState;
-
-  // 🔐 Check user + credits on mount
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        setUserDetails(null);
-        setCreditStatus(null);
-        setLoading(false);
+  const handleFileSelection = useCallback(
+    async (selectedFile) => {
+      if (processing) return;
+      if (selectedFile.type !== "application/pdf") {
+        setErrorMessage("❌ Only PDF files are supported.");
         return;
       }
-      setUserDetails(user);
-      try {
-        const creditRef = doc(db, "Credits", user.uid, "UserCredits", serviceId);
-        const creditSnap = await getDoc(creditRef);
-        setCreditStatus(creditSnap.exists() ? creditSnap.data() : null);
-      } catch (err) {
-        console.error("Error fetching credits:", err);
-        setCreditStatus(null);
-      } finally {
-        setLoading(false);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setUserDetails(null);
-    setCreditStatus(null);
+      if (selectedFile.size > 25 * 1024 * 1024) {
+        setErrorMessage("❌ File size exceeds 25MB.");
+        return;
+      }
+
+      setFile(selectedFile);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+    },
+    [setFile, setErrorMessage, setSuccessMessage, processing]
+  );
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (processing) return;
+    const selectedFile = e.dataTransfer.files[0];
+    if (selectedFile) handleFileSelection(selectedFile);
   };
 
-  const handleFileChange = useCallback(
-    (e) => {
-      if (processing) return;
-      const selectedFile = e.target.files[0];
-      if (selectedFile) {
-        setFile(selectedFile);
-        setUploadState((prev) => ({ ...prev, message: null, messageType: null }));
-      }
-    },
-    [processing]
-  );
-
-  const handleDrop = useCallback(
-    (e) => {
-      e.preventDefault();
-      if (processing) return;
-      const selectedFile = e.dataTransfer.files[0];
-      if (selectedFile) {
-        setFile(selectedFile);
-        setUploadState((prev) => ({ ...prev, message: null, messageType: null }));
-      }
-    },
-    [processing]
-  );
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) handleFileSelection(selectedFile);
+  };
 
   const handleUpload = useCallback(async () => {
     if (!file || !userDetails || processing) return;
 
     if (!creditStatus || creditStatus.available <= 0) {
-      setUploadState((prev) => ({
-        ...prev,
-        message: "❌ Not enough credits to process this file.",
-        messageType: "error",
-      }));
+      setErrorMessage("❌ Not enough credits to process this file.");
       return;
     }
 
-    setUploadState((prev) => ({
-      ...prev,
-      processing: true,
-      progress: 0,
-      message: null,
-      messageType: null,
-      creditsUsed: null,
-    }));
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setProcessing(true);
+    setProgress(0);
+    setPhase("uploading");
+
+    const uploadingTimeout = setTimeout(() => setPhase("analysing"), 3000);
 
     const interval = setInterval(() => {
-      setUploadState((prev) => ({
-        ...prev,
-        progress: Math.min(prev.progress + Math.floor(Math.random() * 5 + 2), 95),
-      }));
-    }, 1000);
+      setProgress((prev) => Math.min(prev + Math.random() * 3 + 1, 95));
+    }, 500);
 
     try {
       const pdfBytes = new Uint8Array(await readFileAsArrayBuffer(file));
@@ -178,30 +103,14 @@ function OcrAdvance() {
         body: pdfBytes,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to process file");
-      }
+      if (!response.ok) throw new Error("Failed to process file");
 
-      const creditsHeader = response.headers.get("X-Credits-Used");
-      const creditsUsedValue = creditsHeader ? parseInt(creditsHeader, 10) : 1;
-
-      // Update UI and credit status after successful operation
-      setUploadState((prev) => ({
-        ...prev,
-        progress: 100,
-        creditsUsed: creditsUsedValue,
-        message: `✅ File successfully downloaded. Service deducted ${creditsUsedValue} credits.`,
-        messageType: "success",
-      }));
-
-      // Update credit status locally to avoid extra firebase call
-      setCreditStatus((prev) => ({
-        ...prev,
-        available: prev.available - creditsUsedValue,
-      }));
-
-      // Initiate file download
       const blob = await response.blob();
+      const creditsHeader = response.headers.get("X-Credits-Used");
+      const creditsUsed = creditsHeader ? parseInt(creditsHeader, 10) : 1;
+
+      setProgress(100);
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -210,106 +119,242 @@ function OcrAdvance() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
+      setPhase("idle");
+      setSuccessMessage(`✅ File Successfully Downloaded. Service Used ${creditsUsed} Credits.`);
+
+      setCreditStatus((prev) => ({
+        ...prev,
+        available: prev.available - creditsUsed,
+      }));
+
+      setTimeout(() => {
+        setProcessing(false);
+        setProgress(0);
+        setFile(null);
+        setSuccessMessage(null);
+        if (inputRef.current) inputRef.current.value = null;
+      }, 5000);
     } catch (error) {
       console.error("Upload failed:", error);
-      setUploadState((prev) => ({
-        ...prev,
-        message: "❌ Something went wrong while processing your file.",
-        messageType: "error",
-      }));
+      setErrorMessage("❌ Something went wrong while processing your file.");
+      setTimeout(() => {
+        setProcessing(false);
+        setProgress(0);
+        setFile(null);
+        setPhase("idle");
+      }, 1500);
     } finally {
       clearInterval(interval);
-      setTimeout(() => {
-        setUploadState((prev) => ({ ...prev, processing: false, progress: 0 }));
-        setFile(null);
-      }, 1500);
+      clearTimeout(uploadingTimeout);
     }
-  }, [file, userDetails, processing, creditStatus]);
+  }, [
+    file,
+    userDetails,
+    processing,
+    creditStatus,
+    setProcessing,
+    setProgress,
+    setErrorMessage,
+    setSuccessMessage,
+    setFile,
+    setCreditStatus,
+  ]);
 
-  const renderContent = useMemo(() => {
-    if (loading) {
+  return (
+    <>
+      <div
+        onDrop={processing ? undefined : handleDrop}
+        onDragOver={(e) => !processing && e.preventDefault()}
+        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition ${
+          processing
+            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-70"
+            : "border-[#B7D4E9] hover:border-[#E6A24B] cursor-pointer"
+        }`}
+      >
+        <Upload className="w-12 h-12 text-[#B7D4E9] mb-3" />
+        <p className="text-gray-700">Drag and drop file here</p>
+        <p className="text-sm text-gray-500">Limit 25MB per file • PDF</p>
+
+        <label
+          className={`mt-5 px-5 py-2 rounded-lg text-sm font-semibold text-white ${
+            processing
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-[#E6A24B] hover:bg-[#d68d32] cursor-pointer"
+          }`}
+        >
+          {processing ? "Disabled" : "Browse files"}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={processing}
+          />
+        </label>
+      </div>
+
+      {file && (
+        <div className="mt-4 text-sm text-gray-700">
+          <span className="font-semibold">Selected file:</span> {file.name}
+        </div>
+      )}
+
+      <button
+        onClick={handleUpload}
+        disabled={!file || processing}
+        className={`w-full mt-6 px-4 py-3 rounded-lg font-semibold transition ${
+          file && !processing
+            ? "bg-[#E6A24B] text-white hover:bg-[#d68d32]"
+            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+        }`}
+      >
+        {phase === "uploading" && processing ? (
+          <span className="animate-pulse">Uploading...</span>
+        ) : phase === "analysing" && processing ? (
+          <span className="animate-pulse">Suvichaar AI is Analysing...</span>
+        ) : (
+          "Upload PDF to begin"
+        )}
+      </button>
+    </>
+  );
+};
+
+// ------------------------------------
+// Main Component
+// ------------------------------------
+function OcrAdvance() {
+  const [userDetails, setUserDetails] = useState(null);
+  const [creditStatus, setCreditStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const [file, setFile] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        setUserDetails(null);
+        setCreditStatus(null);
+        setLoading(false);
+        return;
+      }
+
+      setUserDetails(user);
+      try {
+        const creditRef = doc(db, "Credits", user.uid, "UserCredits", serviceId);
+        const creditSnap = await getDoc(creditRef);
+        setCreditStatus(creditSnap.exists() ? creditSnap.data() : null);
+      } catch (err) {
+        console.error("Error fetching credits:", err);
+        setCreditStatus(null);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setUserDetails(null);
+    setCreditStatus(null);
+    setFile(null);
+    setProcessing(false);
+    setProgress(0);
+    setErrorMessage(null);
+    setSuccessMessage("");
+  };
+
+  const ProgressBar = ({ progress }) => (
+    <div className="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden">
+      <div
+        className="bg-[#E6A24B] h-3 transition-all duration-500 ease-in-out"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+
+  const renderContent = () => {
+    if (loading)
       return <p className="text-center text-gray-600">Loading service status...</p>;
-    }
 
-    if (!creditStatus) {
+    if (!creditStatus)
       return (
         <p className="text-center text-red-600 font-semibold">
-          Service not found for your account. Please contact support@example.com
+          Service not found for your account. Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
-    }
 
-    if (!creditStatus.isActive) {
+    if (!creditStatus.isActive)
       return (
         <p className="text-center text-red-600 font-semibold">
           This service is <span className="underline">inactive</span> for your account.
           <br />
-          Please contact support@example.com
+          Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
-    }
 
-    if (creditStatus.available <= 0) {
+    if (creditStatus.available <= 0)
       return (
         <p className="text-center text-red-600 font-semibold">
           Your credits for this tool are <span className="underline">completed</span>.
           <br />
-          Please contact support@example.com
+          Please contact{" "}
+          <a
+            href="mailto:support@contentlabs.com"
+            className="text-[#E6A24B] text-sm font-medium hover:underline"
+          >
+            contentlabs@suvichaar.org
+          </a>
         </p>
       );
-    }
 
     return (
       <>
-        <UploaderBox
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
+        <Uploader
+          file={file}
+          setFile={setFile}
           processing={processing}
-          onFileChange={handleFileChange}
+          setProcessing={setProcessing}
+          setProgress={setProgress}
+          setErrorMessage={setErrorMessage}
+          setSuccessMessage={setSuccessMessage}
+          userDetails={userDetails}
+          creditStatus={creditStatus}
+          setCreditStatus={setCreditStatus}
         />
-        {file && (
-          <div className="mt-4 text-sm text-gray-700">
-            <span className="font-semibold">Selected file:</span> {file.name}
-          </div>
-        )}
-        <button
-          onClick={handleUpload}
-          disabled={!file || processing}
-          className={`w-full mt-6 px-4 py-3 rounded-lg font-semibold transition ${
-            file && !processing
-              ? "bg-[#E6A24B] text-white hover:bg-[#d68d32]"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
-        >
-          {processing ? "Processing..." : file ? "Upload PDF to begin" : "Upload a PDF to begin"}
-        </button>
         {processing && <ProgressBar progress={progress} />}
+        {errorMessage && (
+          <div className="mt-4 text-sm text-red-600 font-semibold">{errorMessage}</div>
+        )}
+        {successMessage && (
+          <div className="mt-4 text-sm text-green-600 font-semibold">{successMessage}</div>
+        )}
         <div className="mt-6 text-xs text-gray-500">
           • Each extracted page deducts 1 credit from your balance.
         </div>
-        {message && (
-          <div
-            className={`mt-4 text-sm font-semibold ${
-              messageType === "success" ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {message}
-          </div>
-        )}
       </>
     );
-  }, [
-    loading,
-    creditStatus,
-    processing,
-    file,
-    progress,
-    message,
-    messageType,
-    handleDrop,
-    handleFileChange,
-    handleUpload,
-  ]);
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#B7D4E9] via-white to-[#E6A24B] text-black p-6 relative">
@@ -319,7 +364,7 @@ function OcrAdvance() {
           High-precision OCR that handles complex layouts, tables, multi-language documents, and
           low-quality scans. Provides enterprise-grade recognition for detailed document processing.
         </p>
-        {renderContent}
+        {renderContent()}
       </div>
     </div>
   );
