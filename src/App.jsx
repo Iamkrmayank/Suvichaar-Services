@@ -23,6 +23,7 @@ import OcrCore from "./components/User_Dashboard/Tools/OcrCore";
 import AdvanceOcr from "./components/User_Dashboard/Tools/AdvanceOcr";
 
 import "./index.css";
+import BoardFileMaker from "./components/Board_File_Dashboard/BoardFileMaker";
 
 function App() {
   return (
@@ -31,6 +32,8 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/BoardFileMaker" element={<BoardFileMaker />} />
+      
 
       {/* User Dashboard Routes (Protected) */}
       <Route
