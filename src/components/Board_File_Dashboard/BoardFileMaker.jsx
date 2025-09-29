@@ -12,8 +12,8 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase_config/config.js";
 
-import OcrCoreService from "./OcrCoreInline.jsx";
-import OcrAdvanceService from "./OcrAdvanceInline.jsx";
+import OcrCoreService from "./OcrCoreService.jsx";
+import OcrAdvanceService from "./OcrAdvanceService.jsx";
 
 const BoardFileMaker = () => {
   const [isOpen, setIsOpen] = useState(false);
