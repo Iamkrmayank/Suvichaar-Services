@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { X, Menu, FileText, File, User, LogOut, ArrowLeft } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -13,8 +12,8 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase_config/config.js";
 
-import OcrCoreService from "./OcrCoreService.jsx";
-import OcrAdvanceService from "./OcrAdvanceService.jsx";
+import OcrCoreService from "./OcrCoreInline.jsx";
+import OcrAdvanceService from "./OcrAdvanceInline.jsx";
 
 const BoardFileMaker = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +38,16 @@ const BoardFileMaker = () => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const profileRef = useRef(null);
+
+
+  const [showBoardfileModal, setShowBoardfileModal] = useState(false);
+  const [selectedBoardfile, setSelectedBoardfile] = useState(null);
+  const [selectedPdf, setSelectedPdf] = useState(null);
+  const [modalError, setModalError] = useState("");
+
+  const boardfileInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
+
 
   const [uploadedPdfFile, setUploadedPdfFile] = useState(null);
 
@@ -234,24 +243,37 @@ const BoardFileMaker = () => {
       reader.readAsText(file);
     });
 
-  const handleBoardfileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  const handleBoardfileModalContinue = async () => {
     try {
-      const text = await readFileAsText(file);
+      setModalError(""); // reset previous error
+
+      if (!selectedBoardfile || !selectedPdf) {
+        setModalError("Please select both a Boardfile (JSON) and a PDF to continue.");
+        return;
+      }
+
+      const text = await readFileAsText(selectedBoardfile);
       const data = JSON.parse(text);
       setBoardfileData(data);
-      if (data.pdfUrl) {
-        if (!data.pdfUrl.startsWith("file:///")) {
-          setPdfUrl(`/pdfjs/web/viewer.html?file=${encodeURIComponent(data.pdfUrl)}`);
-        }
-      }
-      setActiveTab("index");
+
+      const url = URL.createObjectURL(selectedPdf);
+      setPdfUrl(`/pdfjs/web/viewer.html?file=${encodeURIComponent(url)}`);
+      setUploadedPdfFile(selectedPdf);
+
+      setShowBoardfileModal(false);
       setShowUploadOverlay(false);
-    } catch (error) {
-      console.error("Invalid JSON file format.", error);
+    } catch (err) {
+      console.error("Error processing files:", err);
+      setModalError("Invalid JSON file or PDF. Please try again.");
     }
   };
+
+  const closeBoardfileModal = () => {
+    setSelectedBoardfile(null);
+    setSelectedPdf(null);
+    setShowBoardfileModal(false);
+  };
+
 
   const handlePdfUpload = (event) => {
     const file = event.target.files[0];
@@ -277,12 +299,15 @@ const BoardFileMaker = () => {
               <span className="text-sm text-gray-500 mb-4">Load a PDF directly into the viewer</span>
               <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
             </label>
-            <label className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-xl cursor-pointer hover:shadow-2xl transition-transform transform hover:-translate-y-1">
+            <label
+              className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-xl cursor-pointer hover:shadow-2xl transition-transform transform hover:-translate-y-1"
+              onClick={() => setShowBoardfileModal(true)}
+            >
               <FileText className="w-12 h-12 text-orange-600 mb-3" />
-              <span className="font-semibold text-lg text-gray-800 mb-2">Upload Boardfile</span>
+              <span className="font-semibold text-lg text-gray-800 mb-2">Upload Boardfile and PDF</span>
               <span className="text-sm text-gray-500 mb-4">Load a JSON boardfile with PDF</span>
-              <input type="file" accept=".json" className="hidden" onChange={handleBoardfileUpload} />
             </label>
+
           </div>
         </div>
       )}
@@ -299,9 +324,8 @@ const BoardFileMaker = () => {
 
       {/* Overlay */}
       <div
-        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-        }`}
+        className={`fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 ${isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+          }`}
         onClick={() => setIsOpen(false)}
       ></div>
 
@@ -310,10 +334,10 @@ const BoardFileMaker = () => {
         className={`fixed top-0 right-0 h-full bg-white shadow-2xl transform transition-all duration-300 z-50 flex flex-col
         ${isOpen ? "translate-x-0" : "translate-x-full"} 
         ${storyUrl
-          ? storyType === "horizontal"
-            ? "w-[95%] md:w-[700px] lg:w-[900px]"
-            : "w-[80%] md:w-[450px]"
-          : "w-[80%] md:w-[450px]"}`}
+            ? storyType === "horizontal"
+              ? "w-[95%] md:w-[700px] lg:w-[900px]"
+              : "w-[80%] md:w-[450px]"
+            : "w-[80%] md:w-[450px]"}`}
       >
         {/* Header */}
         {!storyUrl ? (
@@ -388,11 +412,10 @@ const BoardFileMaker = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-3 text-sm font-medium capitalize transition-colors ${
-                  activeTab === tab
-                    ? "border-b-2 border-orange-500 text-orange-600 bg-gray-50"
-                    : "text-gray-500 hover:text-orange-600 hover:bg-gray-100"
-                }`}
+                className={`flex-1 py-3 text-sm font-medium capitalize transition-colors ${activeTab === tab
+                  ? "border-b-2 border-orange-500 text-orange-600 bg-gray-50"
+                  : "text-gray-500 hover:text-orange-600 hover:bg-gray-100"
+                  }`}
               >
                 {tab.replace("-", " ")}
               </button>
@@ -474,15 +497,93 @@ const BoardFileMaker = () => {
                 <span>Upload PDF</span>
                 <input type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
               </label>
-              <label className="flex items-center space-x-2 p-3 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition">
+              <label
+                className="flex items-center space-x-2 p-3 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition"
+                onClick={() => setShowBoardfileModal(true)}
+              >
                 <FileText className="w-6 h-6 text-orange-600" />
-                <span>Upload Boardfile</span>
-                <input type="file" accept=".json" className="hidden" onChange={handleBoardfileUpload} />
+                <span>Upload Boardfile and PDF</span>
               </label>
+
             </div>
           )}
         </div>
       </div>
+
+      {showBoardfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-5 border border-orange-300 transform transition-all duration-300 hover:scale-105">
+            <h3 className="text-lg font-bold text-orange-600 text-center">Upload Files</h3>
+
+            {/* Hidden inputs */}
+            <input
+              type="file"
+              accept=".json"
+              ref={boardfileInputRef}
+              className="hidden"
+              onChange={(e) => setSelectedBoardfile(e.target.files[0])}
+            />
+            <input
+              type="file"
+              accept=".pdf"
+              ref={pdfInputRef}
+              className="hidden"
+              onChange={(e) => setSelectedPdf(e.target.files[0])}
+            />
+
+            {/* Upload Buttons */}
+            <button
+              onClick={() => boardfileInputRef.current.click()}
+              className="w-full py-3 rounded-xl shadow-lg text-white font-semibold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            >
+              Add Boardfile (JSON)
+            </button>
+
+            <button
+              onClick={() => pdfInputRef.current.click()}
+              className="w-full py-3 rounded-xl shadow-lg text-white font-semibold bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            >
+              Add PDF
+            </button>
+
+            {/* Error Message */}
+            {modalError && (
+              <p className="text-red-600 text-center text-sm mt-1 font-medium">
+                {modalError}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-between gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowBoardfileModal(false);
+                  setSelectedBoardfile(null);
+                  setSelectedPdf(null);
+                  setModalError(""); // reset error
+                }}
+                className="flex-1 py-2 rounded-xl shadow text-gray-700 bg-gray-100 hover:bg-gray-200 hover:shadow-md hover:-translate-y-1 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBoardfileModalContinue}
+                className="flex-1 py-2 rounded-xl shadow-lg text-white font-semibold bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+              >
+                Continue
+              </button>
+            </div>
+
+            {/* Selected File Info */}
+            <div className="text-sm text-gray-600 mt-2">
+              {selectedBoardfile && <p>📄 Boardfile: {selectedBoardfile.name}</p>}
+              {selectedPdf && <p>📑 PDF: {selectedPdf.name}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Confirmation Dialog */}
       {showConfirm && (
