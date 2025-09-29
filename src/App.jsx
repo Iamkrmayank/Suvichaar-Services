@@ -32,7 +32,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/BoardFileMaker" element={<BoardFileMaker />} />
+      <Route path="/board-file-viewer" element={<BoardFileMaker />} />
       
 
       {/* User Dashboard Routes (Protected) */}
