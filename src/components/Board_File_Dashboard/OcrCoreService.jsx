@@ -191,6 +191,7 @@ const OcrCoreService = ({ uploadedPdfFile, creditStatus, setCreditStatus }) => {
   };
 
   return (
+
     <div className="bg-white shadow-md rounded-xl p-5 flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-orange-100">
       <div className="flex items-center space-x-4 mb-4">
         <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-tr from-orange-50 to-orange-100 flex-shrink-0">
@@ -234,7 +235,7 @@ const OcrCoreService = ({ uploadedPdfFile, creditStatus, setCreditStatus }) => {
         ) : phase === "analysing" && processing ? (
           <span className="animate-pulse">Suvichaar AI is Analysing...</span>
         ) : phase === "downloaded" ? (
-          <span className="text-green-600">✅ File Downloaded</span>
+          <span className="text-white">✅ File Downloaded</span>
         ) : (
           "Convert PDF to DOCX"
         )}

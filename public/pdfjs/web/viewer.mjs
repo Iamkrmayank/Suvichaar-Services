@@ -17891,6 +17891,108 @@ if (document.readyState === "interactive" || document.readyState === "complete")
   document.addEventListener("DOMContentLoaded", webViewerLoad, true);
 }
 
+let cropOverlay = null;
+let isDragging = false;
+let startX, startY, endX, endY;
+
+function createCropOverlay() {
+  cropOverlay = document.createElement("div");
+  cropOverlay.id = "crop-overlay";
+  Object.assign(cropOverlay.style, {
+    position: "absolute",
+    border: "2px dashed red",
+    background: "rgba(255,0,0,0.2)",
+    display: "none",
+    pointerEvents: "none",
+    zIndex: 9999,
+  });
+  document.body.appendChild(cropOverlay);
+}
+
+function captureCrop(x, y, w, h, pageView) {
+  const viewport = pageView.viewport;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  pageView.pdfPage.render({
+    canvasContext: context,
+    viewport,
+  }).promise.then(() => {
+    const cropCanvas = document.createElement("canvas");
+    cropCanvas.width = w;
+    cropCanvas.height = h;
+
+    const cropCtx = cropCanvas.getContext("2d");
+    cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+
+    const croppedImg = cropCanvas.toDataURL("image/png");
+    window.parent.postMessage({ type: "PAGE_CROP", img: croppedImg }, "*");
+  });
+}
+
+function enableCropSelection() {
+  if (!cropOverlay) createCropOverlay();
+
+  const viewer = PDFViewerApplication.pdfViewer;
+  const container = viewer.viewer; // 👈 this is the div holding PDF pages
+
+  container.addEventListener("mousedown", (e) => {
+    if (!e.shiftKey) return; // Hold SHIFT to crop
+    isDragging = true;
+    startX = e.offsetX;
+    startY = e.offsetY;
+    Object.assign(cropOverlay.style, {
+      left: `${e.pageX}px`,
+      top: `${e.pageY}px`,
+      width: "0px",
+      height: "0px",
+      display: "block",
+    });
+  });
+
+  container.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    endX = e.offsetX;
+    endY = e.offsetY;
+    const rectX = Math.min(startX, endX);
+    const rectY = Math.min(startY, endY);
+    const rectW = Math.abs(startX - endX);
+    const rectH = Math.abs(startY - endY);
+    Object.assign(cropOverlay.style, {
+      left: `${Math.min(e.pageX, e.pageX - (endX - startX))}px`,
+      top: `${Math.min(e.pageY, e.pageY - (endY - startY))}px`,
+      width: `${rectW}px`,
+      height: `${rectH}px`,
+    });
+  });
+
+  container.addEventListener("mouseup", (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    cropOverlay.style.display = "none";
+
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+
+    const rectX = Math.min(startX, endX);
+    const rectY = Math.min(startY, endY);
+    const rectW = Math.abs(startX - endX);
+    const rectH = Math.abs(startY - endY);
+
+    captureCrop(rectX, rectY, rectW, rectH, pageView);
+  });
+}
+
+window.addEventListener("message", (e) => {
+  if (e.data.type === "ENABLE_CROP") {
+    enableCropSelection();
+  }
+});
+
+
 export { PDFViewerApplication, AppConstants as PDFViewerApplicationConstants, AppOptions as PDFViewerApplicationOptions };
 
 //# sourceMappingURL=viewer.mjs.map

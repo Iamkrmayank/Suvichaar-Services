@@ -34,6 +34,27 @@ See https://github.com/adobe-type-tools/cmap-resources
     <link rel="stylesheet" href="viewer.css">
 
   <script src="viewer.mjs" type="module"></script>
+  <script>
+  window.addEventListener("message", async (event) => {
+    if (event.data === "GET_PAGE_IMAGE") {
+      // Get current page from PDF.js viewer
+      const pageView = PDFViewerApplication.pdfViewer.getPageView(
+        PDFViewerApplication.page - 1
+      );
+
+      // Find the rendered canvas for current page
+      const canvas = pageView.canvas;
+      if (!canvas) return;
+
+      // Convert canvas to image
+      const imgData = canvas.toDataURL("image/png");
+
+      // Send back to parent (React)
+      window.parent.postMessage({ type: "PAGE_IMAGE", img: imgData }, "*");
+    }
+  });
+</script>
+
   </head>
 
   <body tabindex="0">
