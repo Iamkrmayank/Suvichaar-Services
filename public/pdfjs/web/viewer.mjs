@@ -26,25 +26,30 @@
  */
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
-/******/ 
+/******/
 /************************************************************************/
 /******/ /* webpack/runtime/define property getters */
 /******/ (() => {
 /******/ 	// define getter functions for harmony exports
 /******/ 	__webpack_require__.d = (exports, definition) => {
-/******/ 		for(var key in definition) {
-/******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 		for (var key in definition) {
+/******/ 			if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
 /******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 			}
-/******/ 		}
-/******/ 	};
-/******/ })();
-/******/ 
+        /******/
+}
+      /******/
+}
+    /******/
+};
+  /******/
+})();
+/******/
 /******/ /* webpack/runtime/hasOwnProperty shorthand */
 /******/ (() => {
 /******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ })();
-/******/ 
+  /******/
+})();
+/******/
 /************************************************************************/
 var __webpack_exports__ = {};
 
@@ -1301,7 +1306,7 @@ class PDFLinkService {
       if (!Array.isArray(dest)) {
         dest = dest.toString();
       }
-    } catch {}
+    } catch { }
     if (typeof dest === "string" || isValidExplicitDest(dest)) {
       this.goToDestination(dest);
       return;
@@ -1353,7 +1358,7 @@ class PDFLinkService {
   }
 }
 class SimpleLinkService extends PDFLinkService {
-  setDocument(pdfDocument, baseUrl = null) {}
+  setDocument(pdfDocument, baseUrl = null) { }
 }
 
 ;// ./web/event_utils.js
@@ -1479,10 +1484,10 @@ class FirefoxEventBus extends EventBus {
 
 ;// ./web/external_services.js
 class BaseExternalServices {
-  updateFindControlState(data) {}
-  updateFindMatchesCount(data) {}
-  initPassiveLoading() {}
-  reportTelemetry(data) {}
+  updateFindControlState(data) { }
+  updateFindMatchesCount(data) { }
+  initPassiveLoading() { }
+  reportTelemetry(data) { }
   async createL10n() {
     throw new Error("Not implemented: createL10n");
   }
@@ -1495,7 +1500,7 @@ class BaseExternalServices {
   updateEditorStates(data) {
     throw new Error("Not implemented: updateEditorStates");
   }
-  dispatchGlobalEvent(_event) {}
+  dispatchGlobalEvent(_event) { }
 }
 
 ;// ./web/preferences.js
@@ -2993,7 +2998,7 @@ class L10n {
     try {
       this.#l10n.connectRoot(element);
       await this.#l10n.translateRoots();
-    } catch {}
+    } catch { }
   }
   async translateOnce(element) {
     try {
@@ -3134,7 +3139,7 @@ class genericl10n_GenericL10n extends L10n {
         baseURL: href.substring(0, href.lastIndexOf("/") + 1) || "./",
         paths
       };
-    } catch {}
+    } catch { }
     return {
       baseURL: "./",
       paths: Object.create(null)
@@ -3175,9 +3180,9 @@ class GenericScripting {
   constructor(sandboxBundleSrc) {
     this._ready = new Promise((resolve, reject) => {
       const sandbox = import(
-      /*webpackIgnore: true*/
-      /*@vite-ignore*/
-      sandboxBundleSrc);
+        /*webpackIgnore: true*/
+        /*@vite-ignore*/
+        sandboxBundleSrc);
       sandbox.then(pdfjsSandbox => {
         resolve(pdfjsSandbox.QuickJSSandbox());
       }).catch(reject);
@@ -3271,7 +3276,7 @@ class SignatureStorage {
 
 
 
-function initCom(app) {}
+function initCom(app) { }
 class Preferences extends BasePreferences {
   async _writeToStorage(prefObj) {
     localStorage.setItem("pdfjs.preferences", JSON.stringify(prefObj));
@@ -3303,8 +3308,8 @@ class MLManager {
   isReady(_name) {
     return false;
   }
-  guess(_data) {}
-  toggleService(_name, _enabled) {}
+  guess(_data) { }
+  toggleService(_name, _enabled) { }
 }
 
 ;// ./web/new_alt_text_manager.js
@@ -3936,8 +3941,8 @@ class AltTextManager {
     this.#hasUsedPointer = false;
     this.#clickAC = new AbortController();
     const clickOpts = {
-        signal: this.#clickAC.signal
-      },
+      signal: this.#clickAC.signal
+    },
       onClick = this.#onClick.bind(this);
     for (const element of [this.#optionDescription, this.#optionDecorative, this.#textarea, this.#saveButton, this.#cancelButton]) {
       element.addEventListener("click", onClick, clickOpts);
@@ -8351,7 +8356,7 @@ class PDFPrintService {
     } = Promise.withResolvers();
     img.onload = resolve;
     img.onerror = reject;
-    promise.catch(() => {}).then(() => {
+    promise.catch(() => { }).then(() => {
       URL.revokeObjectURL(img.src);
     });
     return promise;
@@ -8399,7 +8404,7 @@ window.print = function () {
       });
     } else {
       const activeServiceOnEntry = activeService;
-      activeService.renderPages().then(() => activeServiceOnEntry.performPrint()).catch(() => {}).then(() => {
+      activeService.renderPages().then(() => activeServiceOnEntry.performPrint()).catch(() => { }).then(() => {
         if (activeServiceOnEntry.active) {
           abort();
         }
@@ -8947,13 +8952,13 @@ class PDFScriptingManager {
     if (this.#closeCapability) {
       await Promise.race([this.#closeCapability.promise, new Promise(resolve => {
         setTimeout(resolve, 1000);
-      })]).catch(() => {});
+      })]).catch(() => { });
       this.#closeCapability = null;
     }
     this.#pdfDocument = null;
     try {
       await this.#scripting.destroySandbox();
-    } catch {}
+    } catch { }
     this.#willPrintCapability?.reject(new Error("Scripting destroyed."));
     this.#willPrintCapability = null;
     this.#eventAbortController?.abort();
@@ -10792,7 +10797,7 @@ class StructTreeLayerBuilder {
     try {
       await this.render();
       return this.#elementAttributes.get(annotationId);
-    } catch {}
+    } catch { }
     return null;
   }
   hide() {
@@ -12792,7 +12797,7 @@ class PDFViewer {
         source: this,
         pagesCount
       });
-    }, () => {});
+    }, () => { });
     const onBeforeDraw = evt => {
       const pageView = this._pages[evt.pageNumber - 1];
       if (!pageView) {
@@ -13682,8 +13687,8 @@ class PDFViewer {
       case ScrollMode.WRAPPED:
         {
           const {
-              views
-            } = this._getVisiblePages(),
+            views
+          } = this._getVisiblePages(),
             pageLayout = new Map();
           for (const {
             id,
@@ -13758,8 +13763,8 @@ class PDFViewer {
             break;
           }
           const {
-              views
-            } = this._getVisiblePages(),
+            views
+          } = this._getVisiblePages(),
             expectedId = previous ? currentPageNumber - 1 : currentPageNumber + 1;
           for (const {
             id,
@@ -15668,9 +15673,9 @@ const PDFViewerApplication = {
       return;
     }
     const {
-        mainContainer,
-        viewerContainer
-      } = this.appConfig,
+      mainContainer,
+      viewerContainer
+    } = this.appConfig,
       params = parseQueryString(hash);
     const loadPDFBug = async () => {
       if (this._PDFBug) {
@@ -15679,18 +15684,18 @@ const PDFViewerApplication = {
       const {
         PDFBug
       } = await import(
-      /*webpackIgnore: true*/
-      /*@vite-ignore*/
-      AppOptions.get("debuggerSrc"));
+        /*webpackIgnore: true*/
+        /*@vite-ignore*/
+        AppOptions.get("debuggerSrc"));
       this._PDFBug = PDFBug;
     };
     if (params.get("disableworker") === "true") {
       try {
         GlobalWorkerOptions.workerSrc ||= AppOptions.get("workerSrc");
         await import(
-        /*webpackIgnore: true*/
-        /*@vite-ignore*/
-        PDFWorker.workerSrc);
+          /*webpackIgnore: true*/
+          /*@vite-ignore*/
+          PDFWorker.workerSrc);
         AppOptions.set("workerPort", null);
       } catch (ex) {
         console.error("_parseHashParams:", ex);
@@ -16150,7 +16155,7 @@ const PDFViewerApplication = {
     if (!title) {
       try {
         title = decodeURIComponent(getFilenameFromUrl(url));
-      } catch {}
+      } catch { }
     }
     this.setTitle(title || url);
   },
@@ -16196,7 +16201,7 @@ const PDFViewerApplication = {
     if (this.pdfDocument?.annotationStorage.size > 0 && this._annotationStorageModified) {
       try {
         await this.save();
-      } catch {}
+      } catch { }
     }
     const promises = [];
     promises.push(this.pdfLoadingTask.destroy());
@@ -16285,7 +16290,7 @@ const PDFViewerApplication = {
     let data;
     try {
       data = await (this.pdfDocument ? this.pdfDocument.getData() : this.pdfLoadingTask.getData());
-    } catch {}
+    } catch { }
     this.downloadManager.download(data, this._downloadUrl, this._docFilename);
   },
   async save() {
@@ -16382,9 +16387,9 @@ const PDFViewerApplication = {
         });
       });
     });
-    const pageLayoutPromise = pdfDocument.getPageLayout().catch(() => {});
-    const pageModePromise = pdfDocument.getPageMode().catch(() => {});
-    const openActionPromise = pdfDocument.getOpenAction().catch(() => {});
+    const pageLayoutPromise = pdfDocument.getPageLayout().catch(() => { });
+    const pageModePromise = pdfDocument.getPageMode().catch(() => { });
+    const openActionPromise = pdfDocument.getOpenAction().catch(() => { });
     this.toolbar?.setPagesCount(pdfDocument.numPages, false);
     this.secondaryToolbar?.setPagesCount(pdfDocument.numPages);
     this.pdfLinkService.setDocument(pdfDocument);
@@ -16406,7 +16411,7 @@ const PDFViewerApplication = {
       sidebarView: SidebarView.UNKNOWN,
       scrollMode: ScrollMode.UNKNOWN,
       spreadMode: SpreadMode.UNKNOWN
-    }).catch(() => {});
+    }).catch(() => { });
     firstPagePromise.then(pdfPage => {
       this.loadingBar?.setWidth(this.appConfig.viewerContainer);
       this._initializeAnnotationStorageCallbacks(pdfDocument);
@@ -16752,7 +16757,7 @@ const PDFViewerApplication = {
     this.pdfRenderingQueue.renderHighestPriority();
   },
   beforePrint() {
-    this._printAnnotationStoragePromise = this.pdfScriptingManager.dispatchWillPrint().catch(() => {}).then(() => this.pdfDocument?.annotationStorage.print);
+    this._printAnnotationStoragePromise = this.pdfScriptingManager.dispatchWillPrint().catch(() => { }).then(() => this.pdfDocument?.annotationStorage.print);
     if (this.printService) {
       return;
     }
@@ -17032,7 +17037,7 @@ const PDFViewerApplication = {
   },
   _unblockDocumentLoadEvent() {
     document.blockUnblockOnload?.(false);
-    this._unblockDocumentLoadEvent = () => {};
+    this._unblockDocumentLoadEvent = () => { };
   },
   get scriptingReady() {
     return this.pdfScriptingManager.ready;
@@ -17152,7 +17157,7 @@ function onSidebarViewChanged({
 }) {
   this.pdfRenderingQueue.isThumbnailViewEnabled = view === SidebarView.THUMBS;
   if (this.isInitialViewSet) {
-    this.store?.set("sidebarView", view).catch(() => {});
+    this.store?.set("sidebarView", view).catch(() => { });
   }
 }
 function onUpdateViewarea({
@@ -17165,7 +17170,7 @@ function onUpdateViewarea({
       scrollLeft: location.left,
       scrollTop: location.top,
       rotation: location.rotation
-    }).catch(() => {});
+    }).catch(() => { });
   }
   if (this.appConfig.secondaryToolbar) {
     this.appConfig.secondaryToolbar.viewBookmarkButton.href = this.pdfLinkService.getAnchorUrl(location.pdfOpenParams);
@@ -17173,7 +17178,7 @@ function onUpdateViewarea({
 }
 function onViewerModesChanged(name, evt) {
   if (this.isInitialViewSet && !this.pdfViewer.isInPresentationMode) {
-    this.store?.set(name, evt.mode).catch(() => {});
+    this.store?.set(name, evt.mode).catch(() => { });
   }
 }
 function onResize() {
@@ -17891,83 +17896,138 @@ if (document.readyState === "interactive" || document.readyState === "complete")
   document.addEventListener("DOMContentLoaded", webViewerLoad, true);
 }
 
+// viewer-crop.js (drop into PDF.js viewer code)
 let cropOverlay = null;
 let isDragging = false;
-let startX, startY, endX, endY;
+let startX = 0, startY = 0, endX = 0, endY = 0;
+let cropMode = false;
+let handlersAttached = false;
 
+// create overlay appended to body (absolute positioning)
 function createCropOverlay() {
+  if (cropOverlay) return;
   cropOverlay = document.createElement("div");
   cropOverlay.id = "crop-overlay";
   Object.assign(cropOverlay.style, {
     position: "absolute",
     border: "2px dashed red",
-    background: "rgba(255,0,0,0.2)",
+    background: "rgba(255,0,0,0.18)",
     display: "none",
     pointerEvents: "none",
-    zIndex: 9999,
+    zIndex: 999999,
   });
   document.body.appendChild(cropOverlay);
 }
 
-function captureCrop(x, y, w, h, pageView) {
+// If pageCanvas exists, draw crop directly from it. Otherwise use rendered page
+function sendCropFromCanvas(sourceCanvas, x, y, w, h) {
+  const cropCanvas = document.createElement("canvas");
+  cropCanvas.width = Math.max(1, w);
+  cropCanvas.height = Math.max(1, h);
+  const ctx = cropCanvas.getContext("2d");
+  ctx.drawImage(sourceCanvas, x, y, w, h, 0, 0, w, h);
+  const img = cropCanvas.toDataURL("image/png");
+  window.parent.postMessage({ type: "PAGE_CROP", img }, "*");
+}
+
+// Fallback: render the page (pageView.pdfPage) to a canvas and crop from it
+function sendCropByRendering(pageView, x, y, w, h) {
   const viewport = pageView.viewport;
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
+  const renderCanvas = document.createElement("canvas");
+  renderCanvas.width = viewport.width;
+  renderCanvas.height = viewport.height;
+  const renderCtx = renderCanvas.getContext("2d");
 
-  pageView.pdfPage.render({
-    canvasContext: context,
-    viewport,
-  }).promise.then(() => {
+  pageView.pdfPage.render({ canvasContext: renderCtx, viewport }).promise.then(() => {
+    // x,y,w,h are expected in renderCanvas pixels already
     const cropCanvas = document.createElement("canvas");
-    cropCanvas.width = w;
-    cropCanvas.height = h;
-
+    cropCanvas.width = Math.max(1, Math.round(w));
+    cropCanvas.height = Math.max(1, Math.round(h));
     const cropCtx = cropCanvas.getContext("2d");
-    cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
-
-    const croppedImg = cropCanvas.toDataURL("image/png");
-    window.parent.postMessage({ type: "PAGE_CROP", img: croppedImg }, "*");
+    cropCtx.drawImage(renderCanvas, x, y, w, h, 0, 0, w, h);
+    const img = cropCanvas.toDataURL("image/png");
+    window.parent.postMessage({ type: "PAGE_CROP", img }, "*");
   });
 }
 
 function enableCropSelection() {
-  if (!cropOverlay) createCropOverlay();
+  createCropOverlay();
 
   const viewer = PDFViewerApplication.pdfViewer;
-  const container = viewer.viewer; // 👈 this is the div holding PDF pages
+  if (!viewer) {
+    console.error("pdfViewer not ready");
+    return;
+  }
+  const container = viewer.viewer; // div that holds pages
+  if (!container) {
+    console.error("viewer container not found");
+    return;
+  }
 
+  if (handlersAttached) return; // attach only once
+  handlersAttached = true;
+
+  // small helper to pick client coordinates from mouse or touch
+  function clientFromEvent(e) {
+    if (e.touches && e.touches.length) {
+      return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  }
+
+  // start selection (mouse)
   container.addEventListener("mousedown", (e) => {
-    if (!e.shiftKey) return; // Hold SHIFT to crop
+    if (!cropMode || e.button !== 0) return;
+    const { clientX, clientY } = clientFromEvent(e);
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+
+    const pageRect = pageView.div.getBoundingClientRect();
+    // start relative to page (CSS px)
+    startX = clientX - pageRect.left;
+    startY = clientY - pageRect.top;
     isDragging = true;
-    startX = e.offsetX;
-    startY = e.offsetY;
+
     Object.assign(cropOverlay.style, {
-      left: `${e.pageX}px`,
-      top: `${e.pageY}px`,
+      left: `${clientX + window.scrollX}px`,
+      top: `${clientY + window.scrollY}px`,
       width: "0px",
       height: "0px",
       display: "block",
     });
+
+    // prevent text selection
+    e.preventDefault();
   });
 
+  // update selection (mouse)
   container.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
-    endX = e.offsetX;
-    endY = e.offsetY;
+    const { clientX, clientY } = clientFromEvent(e);
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+    const pageRect = pageView.div.getBoundingClientRect();
+
+    endX = clientX - pageRect.left;
+    endY = clientY - pageRect.top;
+
     const rectX = Math.min(startX, endX);
     const rectY = Math.min(startY, endY);
     const rectW = Math.abs(startX - endX);
     const rectH = Math.abs(startY - endY);
+
+    // position overlay in page-coordinates but absolute to document
     Object.assign(cropOverlay.style, {
-      left: `${Math.min(e.pageX, e.pageX - (endX - startX))}px`,
-      top: `${Math.min(e.pageY, e.pageY - (endY - startY))}px`,
-      width: `${rectW}px`,
-      height: `${rectH}px`,
+      left: `${Math.round(rectX + pageRect.left + window.scrollX)}px`,
+      top: `${Math.round(rectY + pageRect.top + window.scrollY)}px`,
+      width: `${Math.round(rectW)}px`,
+      height: `${Math.round(rectH)}px`,
     });
   });
 
+  // end selection (mouse)
   container.addEventListener("mouseup", (e) => {
     if (!isDragging) return;
     isDragging = false;
@@ -17976,21 +18036,160 @@ function enableCropSelection() {
     const pageNumber = viewer.currentPageNumber;
     const pageView = viewer._pages[pageNumber - 1];
     if (!pageView) return;
+    const pageRect = pageView.div.getBoundingClientRect();
 
     const rectX = Math.min(startX, endX);
     const rectY = Math.min(startY, endY);
     const rectW = Math.abs(startX - endX);
     const rectH = Math.abs(startY - endY);
 
-    captureCrop(rectX, rectY, rectW, rectH, pageView);
+    // If page canvas exists we can take crop directly from it
+    if (pageView.canvas) {
+      const canvas = pageView.canvas;
+      const scaleX = canvas.width / pageRect.width;   // canvas px per CSS px
+      const scaleY = canvas.height / pageRect.height;
+
+      const cx = Math.round(rectX * scaleX);
+      const cy = Math.round(rectY * scaleY);
+      const cw = Math.round(rectW * scaleX);
+      const ch = Math.round(rectH * scaleY);
+
+      // ensure bounds
+      const sx = Math.max(0, Math.min(cx, canvas.width - 1));
+      const sy = Math.max(0, Math.min(cy, canvas.height - 1));
+      const sw = Math.max(1, Math.min(cw, canvas.width - sx));
+      const sh = Math.max(1, Math.min(ch, canvas.height - sy));
+
+      sendCropFromCanvas(canvas, sx, sy, sw, sh);
+    } else {
+      // fallback: render page to canvas and crop using viewport (viewport.width corresponds to pixel width)
+      const scale = pageView.viewport.width / pageRect.width;
+      const rx = Math.round(rectX * scale);
+      const ry = Math.round(rectY * scale);
+      const rw = Math.round(rectW * scale);
+      const rh = Math.round(rectH * scale);
+      sendCropByRendering(pageView, rx, ry, rw, rh);
+    }
+
+    // disable cropMode after one capture
+    cropMode = false;
   });
+
+  // --- TOUCH HANDLERS (mobile) ---
+  container.addEventListener("touchstart", (e) => {
+    if (!cropMode) return;
+    const { clientX, clientY } = clientFromEvent(e);
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+    const pageRect = pageView.div.getBoundingClientRect();
+
+    startX = clientX - pageRect.left;
+    startY = clientY - pageRect.top;
+    isDragging = true;
+
+    Object.assign(cropOverlay.style, {
+      left: `${clientX + window.scrollX}px`,
+      top: `${clientY + window.scrollY}px`,
+      width: "0px",
+      height: "0px",
+      display: "block",
+    });
+
+    // prevent the page from scrolling while dragging to crop
+    e.preventDefault();
+  }, { passive: false });
+
+  container.addEventListener("touchmove", (e) => {
+    if (!isDragging) return;
+    const { clientX, clientY } = clientFromEvent(e);
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+    const pageRect = pageView.div.getBoundingClientRect();
+
+    endX = clientX - pageRect.left;
+    endY = clientY - pageRect.top;
+
+    const rectX = Math.min(startX, endX);
+    const rectY = Math.min(startY, endY);
+    const rectW = Math.abs(startX - endX);
+    const rectH = Math.abs(startY - endY);
+
+    Object.assign(cropOverlay.style, {
+      left: `${Math.round(rectX + pageRect.left + window.scrollX)}px`,
+      top: `${Math.round(rectY + pageRect.top + window.scrollY)}px`,
+      width: `${Math.round(rectW)}px`,
+      height: `${Math.round(rectH)}px`,
+    });
+
+    // prevent scrolling while actively selecting
+    e.preventDefault();
+  }, { passive: false });
+
+  container.addEventListener("touchend", (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    cropOverlay.style.display = "none";
+
+    const pageNumber = viewer.currentPageNumber;
+    const pageView = viewer._pages[pageNumber - 1];
+    if (!pageView) return;
+    const pageRect = pageView.div.getBoundingClientRect();
+
+    const rectX = Math.min(startX, endX);
+    const rectY = Math.min(startY, endY);
+    const rectW = Math.abs(startX - endX);
+    const rectH = Math.abs(startY - endY);
+
+    if (pageView.canvas) {
+      const canvas = pageView.canvas;
+      const scaleX = canvas.width / pageRect.width;
+      const scaleY = canvas.height / pageRect.height;
+
+      const cx = Math.round(rectX * scaleX);
+      const cy = Math.round(rectY * scaleY);
+      const cw = Math.round(rectW * scaleX);
+      const ch = Math.round(rectH * scaleY);
+
+      const sx = Math.max(0, Math.min(cx, canvas.width - 1));
+      const sy = Math.max(0, Math.min(cy, canvas.height - 1));
+      const sw = Math.max(1, Math.min(cw, canvas.width - sx));
+      const sh = Math.max(1, Math.min(ch, canvas.height - sy));
+
+      sendCropFromCanvas(canvas, sx, sy, sw, sh);
+    } else {
+      const scale = pageView.viewport.width / pageRect.width;
+      const rx = Math.round(rectX * scale);
+      const ry = Math.round(rectY * scale);
+      const rw = Math.round(rectW * scale);
+      const rh = Math.round(rectH * scale);
+      sendCropByRendering(pageView, rx, ry, rw, rh);
+    }
+
+    // disable crop mode after one capture
+    cropMode = false;
+    e.preventDefault();
+  }, { passive: false });
 }
 
+// parent triggers crop mode
 window.addEventListener("message", (e) => {
-  if (e.data.type === "ENABLE_CROP") {
-    enableCropSelection();
+  if (e.data && e.data.type === "ENABLE_CROP") {
+    cropMode = true;
+    // optionally show a small visual indicator (cursor change) by adding a class to viewer:
+    try {
+      const v = PDFViewerApplication.pdfViewer && PDFViewerApplication.pdfViewer.viewer;
+      if (v) v.classList.add("pdf-crop-active");
+    } catch (err) { /* ignore */ }
   }
 });
+
+// initialize when PDF.js is ready
+PDFViewerApplication.initializedPromise.then(() => {
+  enableCropSelection();
+});
+
 
 
 export { PDFViewerApplication, AppConstants as PDFViewerApplicationConstants, AppOptions as PDFViewerApplicationOptions };

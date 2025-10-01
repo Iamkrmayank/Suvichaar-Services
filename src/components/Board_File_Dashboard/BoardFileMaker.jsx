@@ -1,21 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, Menu, FileText, File, User, LogOut, ArrowLeft, ScanText, Repeat, } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-
 import {
     googleAuth,
     emailSignup,
     emailLogin,
     logout,
 } from "../../firebase_config/authService.js"; // Replace with your actual file path
-
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase_config/config.js";
-
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-
 import OcrCoreService from "./OcrCoreService.jsx";
 import OcrAdvanceService from "./OcrAdvanceService.jsx";
 
@@ -26,70 +22,48 @@ const BoardFileMaker = () => {
     const [pdfUrl, setPdfUrl] = useState("/pdfjs/web/viewer.html?file=/document.pdf");
     const [boardfileData, setBoardfileData] = useState(null);
     const [showUploadOverlay, setShowUploadOverlay] = useState(true);
-
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authLoading, setAuthLoading] = useState(false);
     const [authError, setAuthError] = useState("");
-
     const [authEmail, setAuthEmail] = useState("");
     const [authPassword, setAuthPassword] = useState("");
     const [authMode, setAuthMode] = useState("login"); // 'login' or 'signup'
     const [authFirstName, setAuthFirstName] = useState("");
     const [authLastName, setAuthLastName] = useState("");
-
     const [currentUser, setCurrentUser] = useState(null);
-
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const profileRef = useRef(null);
-
-
     const [showBoardfileModal, setShowBoardfileModal] = useState(false);
     const [selectedBoardfile, setSelectedBoardfile] = useState(null);
     const [selectedPdf, setSelectedPdf] = useState(null);
     const [modalError, setModalError] = useState("");
     const [expandedIndex, setExpandedIndex] = useState(null);
-
-
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxImages, setLightboxImages] = useState([]);
     const [lightboxIndex, setLightboxIndex] = useState(0);
-
-
     const [snapImage, setSnapImage] = useState(null);
     const [showSnapPopup, setShowSnapPopup] = useState(false);
+    const [uploadedPdfFile, setUploadedPdfFile] = useState(null);
+    const [creditStatusOcrCore, setCreditStatusOcrCore] = useState(null);
+    const [creditStatusOcrAdvanced, setCreditStatusOcrAdvanced] = useState(null);
+    const [storyUrl, setStoryUrl] = useState(null);
+    const [storyType, setStoryType] = useState(null);
+    const [showChat, setShowChat] = useState(false);
+    const [messages, setMessages] = useState([{ sender: "bot", text: "Hello! How can I help you today?" },]);
+    const [inputMessage, setInputMessage] = useState("");
+    const [showCropHelp, setShowCropHelp] = useState(false);
+    const [loadingCapture, setLoadingCapture] = useState(false);
+    const [cropImg, setCropImg] = useState(null);
+    const [isTinyScreen, setIsTinyScreen] = useState(false);
 
 
     const boardfileInputRef = useRef(null);
     const pdfInputRef = useRef(null);
-
-
-    const [uploadedPdfFile, setUploadedPdfFile] = useState(null);
-
-    // OCR CORE
-    const [creditStatusOcrCore, setCreditStatusOcrCore] = useState(null);
-
-    // OCR Advanced
-    const [creditStatusOcrAdvanced, setCreditStatusOcrAdvanced] = useState(null);
-
+    const messagesEndRef = useRef(null);
     const OCR_CORE_SERVICE_ID = "CL_SER_1";
     const OCR_ADVANCE_SERVICE_ID = "CL_SER_2";
-
-    // NEW: story state
-    const [storyUrl, setStoryUrl] = useState(null);
-    const [storyType, setStoryType] = useState(null);
-
-
-
-    // chat related 
-    const [showChat, setShowChat] = useState(false);
-    const [messages, setMessages] = useState([
-        { sender: "bot", text: "Hello! How can I help you today?" },
-    ]);
-    const [inputMessage, setInputMessage] = useState("");
-
-    const messagesEndRef = useRef(null);
 
     useEffect(() => {
         if (messagesEndRef.current) {
@@ -101,6 +75,71 @@ const BoardFileMaker = () => {
         }
     }, [messages]);
 
+    useEffect(() => {
+        try {
+            const userData = JSON.parse(localStorage.getItem("userData"));
+            if (userData && userData.uid) {
+                setIsLoggedIn(true);
+                setCurrentUser(userData);
+                setAuthEmail(userData.email);
+            }
+        } catch {
+            console.warn("No valid user data found in localStorage on load.");
+        }
+    }, []);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!isLoggedIn) {
+                setShowAuthModal(true);
+            }
+        }, 25000);
+        return () => clearTimeout(timer);
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileRef.current && !profileRef.current.contains(event.target)) {
+                setShowProfileDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [profileRef]);
+
+    useEffect(() => {
+        if (currentUser) {
+            fetchUserAndCredits(currentUser);
+        } else {
+            setCreditStatusOcrCore(null);
+            setCreditStatusOcrAdvanced(null);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        const handleMessage = (e) => {
+            if (e.data.type === "PAGE_CROP") {
+                setShowCropHelp(false);       // hide instruction
+                setLoadingCapture(true);      // show loading
+
+                // simulate small delay to mimic processing
+                setTimeout(() => {
+                    setCropImg(e.data.img);
+                    setShowSnapPopup(true);      // show captured image popup
+                    setLoadingCapture(false);    // hide loading
+                }, 1000); // adjust delay if needed
+            }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
+
+    useEffect(() => {
+        const checkScreen = () => setIsTinyScreen(window.innerWidth < 400);
+        checkScreen();
+        window.addEventListener("resize", checkScreen);
+        return () => window.removeEventListener("resize", checkScreen);
+    }, []);
 
     const handleCapture = (image) => {
         setSnapImage(image);
@@ -127,8 +166,6 @@ const BoardFileMaker = () => {
         console.log(`AI would generate a quiz for: ${title}`);
     };
 
-
-
     // Send message handler
     const handleSendMessage = (e) => {
         e.preventDefault(); // ✅ stops page jump
@@ -146,52 +183,6 @@ const BoardFileMaker = () => {
             ]);
         }, 1000);
     };
-
-
-
-    // Initialize auth state
-    useEffect(() => {
-        try {
-            const userData = JSON.parse(localStorage.getItem("userData"));
-            if (userData && userData.uid) {
-                setIsLoggedIn(true);
-                setCurrentUser(userData);
-                setAuthEmail(userData.email);
-            }
-        } catch {
-            console.warn("No valid user data found in localStorage on load.");
-        }
-    }, []);
-
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!isLoggedIn) {
-                setShowAuthModal(true);
-            }
-        }, 25000);
-        return () => clearTimeout(timer);
-    }, [isLoggedIn]);
-
-    // Close profile dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (profileRef.current && !profileRef.current.contains(event.target)) {
-                setShowProfileDropdown(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [profileRef]);
-
-    useEffect(() => {
-        if (currentUser) {
-            fetchUserAndCredits(currentUser);
-        } else {
-            setCreditStatusOcrCore(null);
-            setCreditStatusOcrAdvanced(null);
-        }
-    }, [currentUser]);
 
     const fetchUserAndCredits = async (user) => {
         try {
@@ -300,7 +291,6 @@ const BoardFileMaker = () => {
         localStorage.removeItem("userData");
     };
 
-    // File readers
     const readFileAsText = (file) =>
         new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -341,7 +331,6 @@ const BoardFileMaker = () => {
         setShowBoardfileModal(false);
     };
 
-
     const handlePdfUpload = (event) => {
         const file = event.target.files[0];
         if (!file) return;
@@ -352,41 +341,15 @@ const BoardFileMaker = () => {
         setShowUploadOverlay(false);
     };
 
-    // Inside BoardFileMaker (ScreenSnap.jsx)
-
-    const [showCropHelp, setShowCropHelp] = useState(false);
-    const [loadingCapture, setLoadingCapture] = useState(false);
-    const [cropImg, setCropImg] = useState(null);
-
-    
-
-    useEffect(() => {
-        const handleMessage = (e) => {
-            if (e.data.type === "PAGE_CROP") {
-                setShowCropHelp(false);       // hide instruction
-                setLoadingCapture(true);      // show loading
-                // simulate small delay to mimic processing
-                setTimeout(() => {
-                    setCropImg(e.data.img);
-                    setShowSnapPopup(true);
-                    setLoadingCapture(false);   // hide loading when ready
-                }, 1000); // ⏳ adjust delay if needed
-            }
-        };
-        window.addEventListener("message", handleMessage);
-        return () => window.removeEventListener("message", handleMessage);
-    }, []);
-
-
+    // Enable crop mode in iframe
     const enableCrop = () => {
         const iframe = document.querySelector("iframe[title='PDF Viewer']");
         if (iframe?.contentWindow) {
             iframe.contentWindow.postMessage({ type: "ENABLE_CROP" }, "*");
-            setIsOpen(false); // hide menu
-            setShowCropHelp(true); // show instruction
+            setShowCropHelp(true); // show help overlay
+            setIsOpen(false);
         }
     };
-
 
     return (
 
@@ -437,13 +400,14 @@ const BoardFileMaker = () => {
             {/* Side Panel */}
             <div
                 className={`fixed top-0 right-0 h-full bg-white shadow-2xl transform transition-all duration-300 z-50 flex flex-col
-        ${isOpen ? "translate-x-0" : "translate-x-full"} 
-        ${storyUrl
+    ${isOpen ? "translate-x-0" : "translate-x-full"} 
+    ${isTinyScreen ? "w-full" : storyUrl
                         ? storyType === "horizontal"
                             ? "w-[95%] md:w-[700px] lg:w-[900px]"
                             : "w-[80%] md:w-[450px]"
                         : "w-[80%] md:w-[450px]"}`}
             >
+
                 {/* Header */}
                 {!storyUrl ? (
                     <div className="flex justify-between items-center p-4 bg-orange-500 text-white flex-shrink-0">
@@ -483,13 +447,6 @@ const BoardFileMaker = () => {
                                     </button>
 
                                     {/* 📸 Snap Button */}
-                                    {/* <button
-                                        onClick={captureScreen}
-                                        className="p-1 rounded-full bg-white/30 hover:bg-white/50 transition border border-white"
-                                        title="Take Screenshot"
-                                    >
-                                        📸
-                                    </button> */}
 
                                     <button
                                         onClick={enableCrop}
@@ -701,7 +658,6 @@ const BoardFileMaker = () => {
                         </>
                     )}
 
-
                     {activeTab === "contentlabs-ai" && !storyUrl && (
                         <div className="space-y-4 p-5 relative">
                             <h3 className="font-bold text-xl text-orange-700 mb-4">AI Services</h3>
@@ -829,7 +785,7 @@ const BoardFileMaker = () => {
 
                             {showChat && (
                                 <div className="fixed inset-0 z-50 flex flex-col p-5 backdrop-blur-sm bg-white/90 shadow-2xl  border border-orange-200">
-                                    {/* Chat Header */}
+
                                     <div className="flex justify-between items-center p-3 border-b border-orange-200 mb-3 flex-shrink-0">
                                         <h4 className="font-bold text-orange-700 text-lg">Ask Your Doubts</h4>
                                         <button
@@ -863,7 +819,7 @@ const BoardFileMaker = () => {
                                     </div>
 
 
-                                    {/* Input Box */}
+
                                     <form
                                         onSubmit={handleSendMessage}
                                         className="flex gap-3 mt-4 flex-shrink-0 items-center"
@@ -919,7 +875,6 @@ const BoardFileMaker = () => {
                             </div>
                         </div>
                     )}
-
 
                 </div>
             </div>
@@ -1077,75 +1032,32 @@ const BoardFileMaker = () => {
                 </div>
             )}
 
-            {showSnapPopup && (snapImage || cropImg) && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-
-                    {/* Close button */}
-                    <button
-                        onClick={() => {
-                            setShowSnapPopup(false);
-                            setCropImg(null);
-                            setSnapImage(null);
-                        }}
-                        className="absolute top-6 right-6 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-gray-100 transition"
-                    >
-                        <X size={22} className="text-gray-700" />
-                    </button>
-
-                    <div className="flex gap-6 max-w-6xl w-full">
-                        {/* Left: Image Preview */}
-                        <div className="flex-1 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl p-3 flex items-center justify-center border border-white/30">
-                            <img
-                                src={cropImg || snapImage}
-                                alt="Captured"
-                                className="rounded-lg max-h-[75vh] object-contain border border-white/40 shadow-lg"
-                            />
-                        </div>
-
-                        {/* Right: Services Container */}
-                        <div className="flex-1 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl p-6 flex flex-col justify-center border border-white/30">
-                            <h3 className="font-bold text-lg text-white mb-5 text-center">
-                                ⚡ Available Services
-                            </h3>
-
-                            <div className="flex flex-col gap-3">
-                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:scale-[1.03] transition shadow-md">
-                                    Save Image
-                                </button>
-                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:scale-[1.03] transition shadow-md">
-                                    OCR Service
-                                </button>
-                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:scale-[1.03] transition shadow-md">
-                                    Summarize
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
+            {/* Crop Help Overlay */}
             {showCropHelp && (
-                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-xl px-6 py-4 text-center max-w-md">
-                        <h3 className="font-bold text-orange-600 text-lg mb-2">Crop Mode Enabled</h3>
-                        <p className="text-gray-700 text-sm">
-                            👉 Hold <b>SHIFT</b> and drag on the PDF to select the area you want to capture.
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+                    <div className="bg-white rounded-xl shadow-xl px-6 py-4 text-center max-w-md w-full">
+                        <h3 className="font-bold text-orange-600 text-lg sm:text-xl mb-2">
+                            Crop Mode Enabled
+                        </h3>
+                        <p className="text-gray-700 text-sm sm:text-base">
+                            👉 Drag on the PDF to select the area you want to capture.
                         </p>
                         <button
                             onClick={() => setShowCropHelp(false)}
-                            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg shadow hover:bg-orange-600"
+                            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg shadow hover:bg-orange-600 w-full sm:w-auto"
                         >
                             Got it
                         </button>
                     </div>
                 </div>
             )}
+
+            {/* Loading Spinner */}
             {loadingCapture && (
                 <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="flex flex-col items-center">
                         <svg
-                            className="animate-spin h-12 w-12 text-orange-500"
+                            className="animate-spin h-10 w-10 sm:h-12 sm:w-12 text-orange-500"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1164,11 +1076,58 @@ const BoardFileMaker = () => {
                                 d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 100 16v-4l-3.5 3.5L12 24v-4a8 8 0 01-8-8z"
                             />
                         </svg>
-                        <p className="mt-4 text-white text-sm">Processing your capture...</p>
+                        <p className="mt-4 text-white text-sm sm:text-base">
+                            Processing your capture...
+                        </p>
                     </div>
                 </div>
             )}
 
+            {/* Captured Image Popup */}
+            {showSnapPopup && cropImg && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+                    {/* Close button */}
+                    <button
+                        onClick={() => {
+                            setShowSnapPopup(false);
+                            setCropImg(null);
+                        }}
+                        className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-gray-100 transition"
+                    >
+                        <X size={20} className="text-gray-700" />
+                    </button>
+
+                    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 max-w-6xl w-full">
+                        {/* Left: Image Preview */}
+                        <div className="flex-1 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl p-3 flex items-center justify-center border border-white/30 min-h-[200px]">
+                            <img
+                                src={cropImg}
+                                alt="Captured"
+                                className="rounded-lg max-h-[60vh] sm:max-h-[70vh] md:max-h-[75vh] w-auto object-contain border border-white/40 shadow-lg"
+                            />
+                        </div>
+
+                        {/* Right: Services Container */}
+                        <div className="flex-1 bg-white/20 backdrop-blur-lg rounded-2xl shadow-xl p-4 sm:p-6 flex flex-col justify-center border border-white/30">
+                            <h3 className="font-bold text-base sm:text-lg text-white mb-4 sm:mb-5 text-center">
+                                ⚡ Available Services
+                            </h3>
+
+                            <div className="flex flex-col gap-3">
+                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:scale-[1.03] transition shadow-md text-sm sm:text-base">
+                                    Save Image
+                                </button>
+                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:scale-[1.03] transition shadow-md text-sm sm:text-base">
+                                    OCR Service
+                                </button>
+                                <button className="w-full px-4 py-2.5 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:scale-[1.03] transition shadow-md text-sm sm:text-base">
+                                    Summarize
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
 
