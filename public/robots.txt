@@ -1,0 +1,17 @@
+# robots.txt for labs.suvichaar.org
+# Last updated: 2025-10-04
+# Purpose: Allow search engines to index public pages while blocking admin and API areas.
+
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login/
+Disallow: /logout/
+Disallow: /dashboard/
+Disallow: /settings/
+Allow: /
+
+# Sitemap locations
+Sitemap: https://labs.suvichaar.org/sitemap.xml
+Sitemap: https://labs.suvichaar.org/rss.xml
