@@ -1,101 +1,88 @@
 import React, { useEffect, useState } from 'react';
 
-// The main React component for the SwG integration.
+// The main React component for the SwG Basic integration.
 const SubscribePage = () => {
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [isSwgInitialized, setIsSwgInitialized] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Load the external swg-basic.js script
+  // 1. Load the external swg-basic.js script AND configure it immediately
   useEffect(() => {
     const scriptId = 'swg-basic-script';
     let script = document.getElementById(scriptId);
 
-    // Only load if not already present
-    if (script) {
-        setIsScriptLoaded(true);
-        return;
+    // --- Part 1: Load the Script Dynamically ---
+    if (!script) {
+        script = document.createElement('script');
+        script.id = scriptId;
+        // Using the basic script URL as per your confirmed usage
+        script.src = 'https://news.google.com/swg/js/v1/swg-basic.js'; 
+        script.async = true;
+        script.type = 'application/javascript';
+
+        script.onerror = () => {
+            setError("Failed to load swg-basic.js script.");
+            console.error("Failed to load swg-basic.js script.");
+        };
+
+        document.head.appendChild(script);
     }
+    
+    // --- Part 2: Use the Canonical Initialization Pattern (Most Reliable) ---
+    // The .push() pattern ensures the configuration is queued even if the script 
+    // hasn't fully executed, solving the previous timing issue.
+    
+    console.log('Pushing SWG Basic Initialization payload...');
+    
+    try {
+        // Initialize or retrieve the global SWG_BASIC array
+        const SWG_BASIC = (self.SWG_BASIC = self.SWG_BASIC || []);
 
-    script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://news.google.com/swg/js/v1/swg-basic.js';
-    script.async = true;
-    script.type = 'application/javascript';
-
-    // The script is physically loaded onto the page.
-    script.onload = () => {
-      console.log('Subscribe with Google Basic script loaded.');
-      setIsScriptLoaded(true);
-    };
-
-    script.onerror = () => {
-        setError("Failed to load swg-basic.js script.");
-        console.error("Failed to load swg-basic.js script.");
-    };
-
-    document.head.appendChild(script);
-
-    // Cleanup function (important for component unmount, though less critical in a single file)
-    return () => {
-        // We generally leave the script in the head to avoid breaking other components
-        // but removing the listener prevents memory leaks
-        script.onload = null; 
-    };
+        SWG_BASIC.push(basicSubscriptions => {
+            basicSubscriptions.init({
+                type: "NewsArticle",
+                isPartOfType: ["Product"],
+                // WARNING: Ensure this Product ID is correctly configured for your deployed domain
+                isPartOfProductId: "CAowitXBDA:openaccess", 
+                clientOptions: { 
+                    theme: "light", 
+                    lang: "en", 
+                    // Tell SwG where to place the button. 
+                    buttonLocations: ['#swg-button-container']
+                },
+            });
+            setIsSwgInitialized(true); 
+            console.log('SWG Basic Initialization complete (config pushed and executed).');
+        });
+    } catch (e) {
+        setError("SWG initialization failed during config push: " + e.message);
+        console.error("SWG initialization failed:", e);
+    }
+    
   }, []); // Run only once on mount
 
-  // 2. Poll for the global SWG_BASIC object and initialize once found
-  useEffect(() => {
-    if (!isScriptLoaded || isSwgInitialized || error) return;
-
-    let attempts = 0;
-    const maxAttempts = 20; // Try for up to 2 seconds (100ms * 20)
-    let intervalId;
-
-    const tryInitialize = () => {
-        if (typeof self.SWG_BASIC !== 'undefined' && Array.isArray(self.SWG_BASIC)) {
-            console.log('SWG_BASIC object found. Initializing...');
-            clearInterval(intervalId); // Stop polling
-
-            try {
-                // Execute the initialization logic
-                self.SWG_BASIC.push(basicSubscriptions => {
-                    basicSubscriptions.init({
-                        type: "NewsArticle",
-                        isPartOfType: ["Product"],
-                        // NOTE: This Product ID must match your publication's configuration
-                        isPartOfProductId: "CAowitXBDA:openaccess", 
-                        clientOptions: { 
-                            theme: "light", 
-                            lang: "en", 
-                            // Tell SwG where to place the button. This ID must match the div below.
-                            buttonLocations: ['#swg-button-container']
-                        },
-                    });
-                    setIsSwgInitialized(true);
-                    console.log('SWG Initialization complete. Button should attempt to render.');
-                });
-            } catch (e) {
-                setError("SWG initialization failed: " + e.message);
-                console.error("SWG initialization failed:", e);
-            }
-        } else {
-            attempts++;
-            if (attempts >= maxAttempts) {
-                clearInterval(intervalId);
-                setError("SWG_BASIC object not found after multiple attempts.");
-                console.error("SWG_BASIC object not found after multiple attempts.");
-            }
-        }
-    };
-
-    // Start polling every 100ms
-    intervalId = setInterval(tryInitialize, 100);
-
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
+  
+  const contentState = error 
+    ? 'ERROR' 
+    : !isSwgInitialized 
+    ? 'WAITING_FOR_INIT_EXECUTION' 
+    : 'BUTTON_EXPECTED';
     
-  }, [isScriptLoaded, isSwgInitialized, error]); // Rerun when script loads
+  let statusMessage;
+  
+  switch (contentState) {
+    case 'ERROR':
+      statusMessage = { text: `Error: ${error}`, color: 'text-red-600 font-medium' };
+      break;
+    case 'WAITING_FOR_INIT_EXECUTION':
+      statusMessage = { text: 'Initializing subscription service...', color: 'text-indigo-500' };
+      break;
+    case 'BUTTON_EXPECTED':
+      statusMessage = { text: 'Subscription service configured. Waiting for button to render...', color: 'text-gray-500' };
+      break;
+    default:
+      statusMessage = { text: 'Loading...', color: 'text-gray-500' };
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-8">
@@ -110,14 +97,39 @@ const SubscribePage = () => {
         .article-card {
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        /* Ensure the button container has enough height and is centered */
         #swg-button-container {
             min-height: 48px; 
             display: flex;
             justify-content: center;
             align-items: center;
+            min-width: 250px; 
         }
       `}</style>
+
+      {/* Structured Data (MUST be included in the final HTML head for SwG to work) */}
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{__html: JSON.stringify({
+            "@context": "http://schema.org",
+            "@type": "NewsArticle",
+            "headline": "The Essential Guide to Modern Content Monetization",
+            "isAccessibleForFree": "False",
+            "hasPart": [
+                {
+                    "@type": "WebPageElement",
+                    "isAccessibleForFree": "True",
+                    "cssSelector": ".preview-content" // Selector for the visible content
+                },
+                {
+                    "@type": "WebPageElement",
+                    "isAccessibleForFree": "False",
+                    "cssSelector": ".paywalled-content" // Selector for the locked content
+                }
+            ],
+            // More required fields like datePublished, author, publisher, etc., should go here
+        })}}
+      />
+
 
       {/* Main Content Area */}
       <header className="w-full max-w-2xl text-center mb-8">
@@ -135,8 +147,8 @@ const SubscribePage = () => {
           The Essential Guide to Modern Content Monetization
         </h2>
         
-        {/* Visible Preview Text */}
-        <p className="text-gray-700 mb-6 leading-relaxed">
+        {/* Visible Preview Text - Use .preview-content class for structured data */}
+        <p className="text-gray-700 mb-6 leading-relaxed preview-content">
           The future of high-quality digital publishing hinges entirely on diversified revenue streams. 
           While display advertising offers volume, it often fails to deliver predictable returns or high margins. 
           Consequently, publishers are pivoting towards reader-supported models. This shift guarantees content 
@@ -151,39 +163,30 @@ const SubscribePage = () => {
           
           {/* SwG Button Container - The button will be injected here */}
           <div id="swg-button-container" className="py-2">
-            {!isScriptLoaded ? (
-                // State 1: Script is not yet loading/loaded
-                <div className="text-sm text-gray-500">
-                    Loading Subscription Service...
-                </div>
-            ) : error ? (
-                // State 2: Error during loading or initialization
-                <div className="text-sm text-red-600 font-medium">
-                    Error initializing subscription: {error}
-                </div>
-            ) : !isSwgInitialized ? (
-                // State 3: Script loaded, polling for global object
-                <div className="text-sm text-gray-500 flex items-center justify-center space-x-2">
-                    <svg className="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Waiting for subscription script readiness...</span>
+            {!isSwgInitialized || contentState === 'ERROR' ? (
+                <div className={`${statusMessage.color} flex items-center justify-center space-x-2 text-sm`}>
+                    {(contentState === 'WAITING_FOR_INIT_EXECUTION') && (
+                        <svg className="animate-spin h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    )}
+                    <span>{statusMessage.text}</span>
                 </div>
             ) : (
-                // State 4: Initialized. Waiting for Google to render button (if authorized)
-                <div className="text-sm text-indigo-500">
-                    Subscription service loaded. Button should appear shortly.
+                <div className="text-sm text-gray-500">
+                    {statusMessage.text}
                 </div>
             )}
+            {/* The actual button will be injected here by swg-basic.js */}
           </div>
           
         </div>
 
-        {/* Placeholder for paywalled content (Hidden) */}
-        <div className="text-gray-500 mt-6 pt-6 border-t border-dashed border-gray-200">
+        {/* Paywalled Content - Use .paywalled-content class for structured data */}
+        <div className="text-gray-500 mt-6 pt-6 border-t border-dashed border-gray-200 paywalled-content">
           <p className="font-light italic">
-            [... The full article continues below this point, accessible only after the user successfully completes the subscription/login process via the button above ...]
+            [... The full article continues below this point. This content is locked behind the paywall...]
           </p>
         </div>
       </div>
