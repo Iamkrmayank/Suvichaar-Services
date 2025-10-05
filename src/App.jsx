@@ -24,6 +24,7 @@ import AdvanceOcr from "./components/User_Dashboard/Tools/AdvanceOcr";
 
 import "./index.css";
 import BoardFileMaker from "./components/Board_File_Dashboard/BoardFileMaker";
+import SubscribePage from "./components/SubscribePage";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/board-file-viewer" element={<BoardFileMaker />} />
+      <Route path="/subscribe" element={<SubscribePage />} />
       
 
       {/* User Dashboard Routes (Protected) */}
