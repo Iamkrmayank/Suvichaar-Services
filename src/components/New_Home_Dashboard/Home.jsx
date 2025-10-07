@@ -8,7 +8,7 @@ import logoGif from "/contentlabsGif2.gif?url";
 import { Services } from "./Services";
 import { Process } from "./Process";
 import { DataPrivacy } from "./DataPrivacy";
-import IndustrySection from "./IndustryForHomePage";
+import IndustrySection from "./IndustrySection";
 const Home = () => {
     const navigate = useNavigate();
 
