@@ -25,6 +25,16 @@ import AdvanceOcr from "./components/User_Dashboard/Tools/AdvanceOcr";
 import "./index.css";
 import BoardFileMaker from "./components/Board_File_Dashboard/BoardFileMaker";
 import SubscribePage from "./components/SubscribePage";
+import Layout from "./components/New_Home_Dashboard/Layout";
+import Home1 from "./components/New_Home_Dashboard/Home"
+import PricingPage from "./components/New_Home_Dashboard/PricingPage";
+import ServicesPage from "./components/New_Home_Dashboard/ServicePage";
+import IndustryPage from "./components/New_Home_Dashboard/Industry/Industry";
+import SchoolColl from "./components/New_Home_Dashboard/Industry/Pages/SchoolsAndColleges";
+import EducatorsPage from "./components/New_Home_Dashboard/Industry/Pages/EducatorsPage";
+import ResearchersPage from "./components/New_Home_Dashboard/Industry/Pages/ResearchersPage";
+import WritersPage from "./components/New_Home_Dashboard/Industry/Pages/WritersPage";
+import CorporateServicesPage from "./components/New_Home_Dashboard/Industry/Pages/CorporateServicesPage";
 
 function App() {
   return (
@@ -36,6 +46,18 @@ function App() {
       <Route path="/board-file-viewer" element={<BoardFileMaker />} />
       <Route path="/subscribe" element={<SubscribePage />} />
       
+      <Route element={<Layout />}>
+        <Route path="/home" element={<Home1 />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+
+        <Route path="/industry" element={<IndustryPage/>} />
+        <Route path="/industry/school-college-page" element={<SchoolColl />} />
+        <Route path="/industry/educators-page" element={<EducatorsPage />} />
+        <Route path="/industry/researchers-page" element={<ResearchersPage />} />
+        <Route path="/industry/writers-page" element={<WritersPage/>} />
+        <Route path="/industry/corporate-services-page" element={<CorporateServicesPage/>} />
+      </Route>
 
       {/* User Dashboard Routes (Protected) */}
       <Route
