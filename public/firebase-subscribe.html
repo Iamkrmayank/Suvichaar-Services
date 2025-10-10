@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe with Google</title>
+
+    <!-- Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #2f4f4f;
+            color: white;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+        }
+
+        #googleBtn {
+            background-color: #4285F4;
+        }
+
+        #guestBtn {
+            background-color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Unlock Premium Content</h1>
+    <button id="googleBtn">Subscribe with Google</button>
+    <button id="guestBtn">Continue as Guest</button>
+
+    <script>
+        // -----------------------------
+        // Firebase config
+        // -----------------------------
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_FIREBASE_PROJECT.firebaseapp.com",
+            projectId: "YOUR_FIREBASE_PROJECT",
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // -----------------------------
+        // Get query params from URL
+        // -----------------------------
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get("action"); // subscribe or connect
+        const readerId = urlParams.get("rid"); // AMP Reader ID
+
+        // -----------------------------
+        // Subscribe with Google
+        // -----------------------------
+        document.getElementById("googleBtn").onclick = async () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            try {
+                // Sign-in popup
+                const result = await auth.signInWithPopup(provider);
+                const token = await result.user.getIdToken();
+
+                // Call your Cloud Function to link readerId
+                const response = await fetch(
+                    `https://YOUR_PROJECT.cloudfunctions.net/subscribe?readerId=${readerId}`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${token}`,
+                            "Content-Type": "application/json"
+                        }
+                    }
+                );
+
+                const data = await response.json();
+                if (data.success) {
+                    alert("Subscription successful! 🎉");
+                    window.close(); // close popup
+                } else {
+                    alert("Subscription failed: " + (data.error || "Unknown error"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Google sign-in failed. Check console for details.");
+            }
+        };
+
+        // -----------------------------
+        // Continue as Guest
+        // -----------------------------
+        document.getElementById("guestBtn").onclick = () => {
+            alert("Continuing as guest. Premium content locked.");
+            window.close();
+        };
+    </script>
+
+</body>
+
+</html>
