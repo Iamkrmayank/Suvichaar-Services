@@ -30,7 +30,7 @@ const SubscribeWithGoogle = () => {
 
       // ✅ Step 4: Call backend to activate subscription
       const res = await fetch(
-        `https://us-central1-YOUR_PROJECT.cloudfunctions.net/subscribe?readerId=${readerId}`,
+        `https://us-central1-content-labs-8b84e.cloudfunctions.net/subscribe?readerId=${readerId}`,
         {
           method: "POST",
           headers: {
