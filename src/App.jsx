@@ -35,6 +35,7 @@ import EducatorsPage from "./components/New_Home_Dashboard/Industry/Pages/Educat
 import ResearchersPage from "./components/New_Home_Dashboard/Industry/Pages/ResearchersPage";
 import WritersPage from "./components/New_Home_Dashboard/Industry/Pages/WritersPage";
 import CorporateServicesPage from "./components/New_Home_Dashboard/Industry/Pages/CorporateServicesPage";
+import SubscribeWithGoogle from "./components/SubscribeWithGoogle";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/board-file-viewer" element={<BoardFileMaker />} />
       <Route path="/subscribe" element={<SubscribePage />} />
+      <Route path="/subscribe-with-google" element={<SubscribeWithGoogle />} />
       
       <Route element={<Layout />}>
         <Route path="/home" element={<Home1 />} />
