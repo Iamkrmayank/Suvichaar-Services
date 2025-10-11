@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
@@ -10,7 +9,7 @@ import { auth } from "../../firebase_config/config";
 import LoadingScreen from "./Loading";
 import logo from "/ContentLabs.png";
 
-const Login = () => {
+const Login = ({ isDialog = false, onClose, onSwitchToSignup, onSuccess }) => {
   const [formVisible, setFormVisible] = useState(false);
   const [error, setError] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -24,6 +23,18 @@ const Login = () => {
   useEffect(() => {
     setTimeout(() => setFormVisible(true), 100);
   }, []);
+
+  useEffect(() => {
+    // Get readerId from URL (e.g. ?readerId=amp-xyz123)
+    const params = new URLSearchParams(window.location.search);
+    const readerId = params.get("readerId");
+
+    if (readerId) {
+      localStorage.setItem("readerId", readerId);
+      console.log("AMP Reader ID captured:", readerId);
+    }
+  }, []);
+
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
@@ -49,10 +60,25 @@ const Login = () => {
       const userData = await googleAuth();
       localStorage.setItem("userData", JSON.stringify(userData));
 
+      const readerId = localStorage.getItem("readerId");
+      if (readerId) {
+        const userRef = doc(db, "Users", userData.uid);
+        await setDoc(userRef, { readerId }, { merge: true });
+        console.log("Stored AMP Reader ID:", readerId);
+      }
+
       if (userData.isAdmin) {
         navigate("/admin");
         return;
       }
+
+      if (isDialog) {
+        // If inside dialog, call onSuccess & close dialog
+        if (onSuccess) onSuccess(userData);
+        if (onClose) onClose();
+        return; // Prevent navigation
+      }
+
       if (userData.acceptedTerms) navigate("/dashboard");
       else navigate("/terms");
     } catch (err) {
@@ -73,9 +99,24 @@ const Login = () => {
       const userData = await emailLogin(email, password);
       localStorage.setItem("userData", JSON.stringify(userData));
 
-      if (userData.isAdmin) navigate("/admin");
-      else if (userData.acceptedTerms) navigate("/dashboard");
-      else navigate("/terms");
+      const readerId = localStorage.getItem("readerId");
+      if (readerId) {
+        const userRef = doc(db, "Users", userData.uid);
+        await setDoc(userRef, { readerId }, { merge: true });
+        console.log("Stored AMP Reader ID:", readerId);
+      }
+
+      if (onSuccess) onSuccess(userData);
+      if (onClose) onClose();
+
+      if (!isDialog) {
+        if (userData.isAdmin) navigate("/admin");
+        else if (userData.acceptedTerms) navigate("/dashboard");
+        else navigate("/terms");
+      }
+      // if (userData.isAdmin) navigate("/admin");
+      // else if (userData.acceptedTerms) navigate("/dashboard");
+      // else navigate("/terms");
     } catch (err) {
       console.error(err);
       setError(err.message || "Invalid email or password");
@@ -87,7 +128,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br px-3 sm:px-6 py-6">
+    // <div className="min-h-screen flex items-center justify-center bg-gradient-to-br px-3 sm:px-6 py-6">
+    <div className={`${isDialog ? '' : 'min-h-screen bg-gradient-to-br'} flex items-center justify-center px-3 sm:px-6 py-6`}>
+
       {loading && <LoadingScreen text="Logging you in..." />}
 
       <div
@@ -171,11 +214,28 @@ const Login = () => {
           <FcGoogle className="h-5 sm:h-6 w-5 sm:w-6 mr-2 sm:mr-3" /> Continue with Google
         </button>
 
-        <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
+        {/* <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
           Don't have an account?{" "}
           <a href="/signup" className="text-[#df8815] hover:underline">
             Sign up
           </a>
+        </p> */}
+
+        <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
+          Don't have an account?{" "}
+          {isDialog ? (
+            <button
+              type="button"
+              onClick={onSwitchToSignup}
+              className="text-[#df8815] hover:underline"
+            >
+              Sign up
+            </button>
+          ) : (
+            <a href="/signup" className="text-[#df8815] hover:underline">
+              Sign up
+            </a>
+          )}
         </p>
       </div>
 
@@ -223,4 +283,3 @@ const Login = () => {
 };
 
 export default Login;
-

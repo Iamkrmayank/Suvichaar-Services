@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
@@ -7,7 +6,7 @@ import { googleAuth, emailSignup } from "../../firebase_config/authService";
 import LoadingScreen from "./Loading";
 import logo from "/ContentLabs_2.png";
 
-const Signup = () => {
+const Signup = ({ isDialog = false, onClose, onSwitchToLogin, onSuccess }) => {
   const [formVisible, setFormVisible] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -31,6 +30,13 @@ const Signup = () => {
       const userData = await googleAuth();
 
       localStorage.setItem("userData", JSON.stringify(userData));
+
+      if (isDialog) {
+        // If inside dialog, call onSuccess & close dialog
+        if (onSuccess) onSuccess(userData);
+        if (onClose) onClose();
+        return; // Prevent navigation
+      }
 
       if (userData.isAdmin) {
         navigate("/admin");
@@ -99,11 +105,10 @@ const Signup = () => {
 
       <div
         className={`relative bg-white text-black shadow-lg rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 w-full max-w-sm sm:max-w-md border border-gray-300
-        ${
-          formVisible
+        ${formVisible
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-10"
-        } transform transition-all duration-500 ease-out`}
+          } transform transition-all duration-500 ease-out`}
       >
         {/* Logo */}
         <div className="flex items-center justify-center mb-4 sm:mb-6">
@@ -214,12 +219,29 @@ const Signup = () => {
           <FcGoogle className="h-5 sm:h-6 w-5 sm:w-6 mr-2 sm:mr-3" /> Continue with Google
         </button>
 
-        <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
+        {/* <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
           Already have an account?{" "}
           <a href="/login" className="text-[#df8815] hover:underline">
             Login
           </a>
+        </p> */}
+        <p className="text-center text-gray-600 text-xs sm:text-sm mt-4 sm:mt-6">
+          Already have an account?{" "}
+          {isDialog ? (
+            <button
+              type="button"
+              onClick={onSwitchToLogin}
+              className="text-[#df8815] hover:underline"
+            >
+              Login
+            </button>
+          ) : (
+            <a href="/login" className="text-[#df8815] hover:underline">
+              Login
+            </a>
+          )}
         </p>
+
       </div>
     </div>
   );
