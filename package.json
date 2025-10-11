@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",
     "cors": "^2.8.5",
+    "framer-motion": "^12.23.22",
     "html2canvas": "^1.4.1",
     "lightbox.js-react": "^1.6.2",
     "lucide-react": "^0.544.0",
@@ -24,6 +25,7 @@
     "react-helmet": "^6.1.0",
     "react-icons": "^5.5.0",
     "react-pdf": "^10.1.0",
+    "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^7.9.1",
     "react-screen-capture": "^1.1.1",
     "tailwindcss": "^4.1.13",
